@@ -12,4 +12,8 @@ class DocumentType extends Model
     {
         return $this->hasMany(RequestDocument::class);
     }
+    public function services()
+{
+    return $this->belongsToMany(Service::class, 'service_document_type');
+}
 }

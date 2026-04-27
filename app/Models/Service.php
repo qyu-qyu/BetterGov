@@ -35,5 +35,8 @@ class Service extends Model
         return $this->hasMany(ServiceRequest::class);
     }
 
-
+public function documentTypes()
+{
+    return $this->belongsToMany(DocumentType::class, 'service_document_type');
+}
 }
