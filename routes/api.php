@@ -1,12 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\OfficeController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\ServiceController;
 
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -17,12 +19,16 @@ Route::middleware('auth:sanctum')->group(function () {
    Route::get('/me', [AuthController::class, 'me']);
    Route::post('/logout', [AuthController::class, 'logout']);
 
+   
+
    Route::get('/requests', [RequestController::class, 'index']);
    Route::post('/requests', [RequestController::class, 'store']);
    Route::get('/requests/{id}', [RequestController::class, 'show']);
 
-   Route::get('/notifications', function () {
-   return \App\Models\Notification::where('user_id', auth()->id())->get();
+   
+
+Route::get('/notifications', function () {
+    return \App\Models\Notification::where('user_id', Auth::id())->get();
 });
 
 Route::get('/payments', [PaymentController::class, 'index']);
