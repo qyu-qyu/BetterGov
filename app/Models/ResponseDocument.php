@@ -14,4 +14,9 @@ class ResponseDocument extends Model
     'file_path',
 ];
 
+public function request()
+{
+    return $this->belongsTo(Request::class, 'request_id');
+}
+
 }

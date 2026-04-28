@@ -34,4 +34,15 @@ class ResponseDocumentController extends Controller
             'data' => $document
         ], 201);
     }
+
+    public function getByRequest($requestId)
+{
+    $documents = ResponseDocument::where('request_id', $requestId)->get();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Response documents retrieved successfully',
+        'data' => $documents
+    ], 200);
+}
 }

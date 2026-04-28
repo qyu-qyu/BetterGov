@@ -4,6 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\StatusHistory;
+use App\Models\Payment;
+use App\Models\Message;
+use App\Models\ResponseDocument;
 
 class Request extends Model
 {
@@ -46,4 +50,9 @@ class Request extends Model
    {
        return $this->hasMany(Message::class);
    }
+   
+   public function responseDocuments()
+{
+    return $this->hasMany(ResponseDocument::class, 'request_id');
+}
 }

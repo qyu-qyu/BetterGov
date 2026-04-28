@@ -29,6 +29,8 @@ Route::post('/response-documents', [ResponseDocumentController::class, 'store'])
    Route::get('/requests', [RequestController::class, 'index']);
    Route::post('/requests', [RequestController::class, 'store']);
    Route::get('/requests/{id}', [RequestController::class, 'show']);
+   Route::get('/requests/{id}/response-documents', [ResponseDocumentController::class, 'getByRequest']);
+
 
    
 
