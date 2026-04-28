@@ -10,6 +10,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServiceCategoryController;
+use App\Http\Controllers\ResponseDocumentController;
 
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -23,6 +24,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('services', ServiceController::class);
 Route::apiResource('service-categories', ServiceCategoryController::class);
 
+Route::post('/response-documents', [ResponseDocumentController::class, 'store']);
 
    Route::get('/requests', [RequestController::class, 'index']);
    Route::post('/requests', [RequestController::class, 'store']);
