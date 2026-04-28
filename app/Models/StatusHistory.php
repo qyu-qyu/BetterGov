@@ -10,7 +10,8 @@ class StatusHistory extends Model
        'request_id',
        'old_status',
        'new_status',
-       'changed_by'
+       'changed_by',
+       'comment',
    ];
 
    public function request()
