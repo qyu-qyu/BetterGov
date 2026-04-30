@@ -12,6 +12,7 @@ use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServiceCategoryController;
 use App\Http\Controllers\ResponseDocumentController;
 use App\Http\Controllers\OfficeTimeSlotController;
+use App\Http\Controllers\FeedbackController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -32,6 +33,11 @@ Route::delete('/services/{serviceId}/required-documents/{documentTypeId}', [Serv
     Route::post('/requests', [RequestController::class, 'store']);
     Route::get('/requests/{id}', [RequestController::class, 'show']);
     Route::get('/requests/{id}/response-documents', [ResponseDocumentController::class, 'getByRequest']);
+
+
+Route::get('/feedback', [FeedbackController::class, 'index']);
+Route::get('/feedback/{id}', [FeedbackController::class, 'show']);
+Route::post('/feedback/{id}/response', [FeedbackController::class, 'respond']);
 
     Route::get('/notifications', function () {
         return \App\Models\Notification::where('user_id', '=', Auth::id(), 'and')->get();
