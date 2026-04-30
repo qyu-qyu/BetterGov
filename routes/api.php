@@ -11,49 +11,46 @@ use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServiceCategoryController;
 use App\Http\Controllers\ResponseDocumentController;
-
+use App\Http\Controllers\OfficeTimeSlotController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
-   Route::get('/me', [AuthController::class, 'me']);
-   Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::apiResource('services', ServiceController::class);
-Route::apiResource('service-categories', ServiceCategoryController::class);
+    Route::apiResource('service-categories', ServiceCategoryController::class);
 
-Route::post('/response-documents', [ResponseDocumentController::class, 'store']);
+    Route::post('/response-documents', [ResponseDocumentController::class, 'store']);
 
-   Route::get('/requests', [RequestController::class, 'index']);
-   Route::post('/requests', [RequestController::class, 'store']);
-   Route::get('/requests/{id}', [RequestController::class, 'show']);
-   Route::get('/requests/{id}/response-documents', [ResponseDocumentController::class, 'getByRequest']);
+    Route::get('/requests', [RequestController::class, 'index']);
+    Route::post('/requests', [RequestController::class, 'store']);
+    Route::get('/requests/{id}', [RequestController::class, 'show']);
+    Route::get('/requests/{id}/response-documents', [ResponseDocumentController::class, 'getByRequest']);
 
+    Route::get('/notifications', function () {
+        return \App\Models\Notification::where('user_id', '=', Auth::id(), 'and')->get();
+    });
 
-   
+    Route::get('/payments', [PaymentController::class, 'index']);
+    Route::post('/payments', [PaymentController::class, 'store']);
+    Route::get('/payments/{id}', [PaymentController::class, 'show']);
 
-Route::get('/notifications', function () {
-    return \App\Models\Notification::where('user_id', Auth::id())->get();
+    Route::get('/messages', [MessageController::class, 'index']);
+    Route::post('/messages', [MessageController::class, 'store']);
+    Route::get('/messages/{id}', [MessageController::class, 'show']);
+
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/admin-only', [AuthController::class, 'adminOnly']);
+
+        Route::put('/requests/{id}/status', [RequestController::class, 'updateStatus']);
+
+        Route::post('/appointment-slots', [OfficeTimeSlotController::class, 'store']);
+
+        Route::apiResource('users', UserController::class);
+        Route::apiResource('offices', OfficeController::class);
+    });
 });
-
-Route::get('/payments', [PaymentController::class, 'index']);
-Route::post('/payments', [PaymentController::class, 'store']);
-Route::get('/payments/{id}', [PaymentController::class, 'show']);
-
-Route::get('/messages', [MessageController::class, 'index']);
-Route::post('/messages', [MessageController::class, 'store']);
-Route::get('/messages/{id}', [MessageController::class, 'show']);
-
-
-   Route::middleware('role:admin')->group(function () {
-       Route::get('/admin-only', [AuthController::class, 'adminOnly']);
-
-       Route::put('/requests/{id}/status', [RequestController::class, 'updateStatus']);
-
-       Route::apiResource('users', UserController::class);
-       Route::apiResource('offices', OfficeController::class);
-   });
-});
-
