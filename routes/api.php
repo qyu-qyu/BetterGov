@@ -70,4 +70,4 @@ Route::get('/office/dashboard', [OfficeDashboardController::class, 'dashboard'])
         Route::apiResource('users', UserController::class);
         Route::apiResource('offices', OfficeController::class);
     });
-});
+});  
