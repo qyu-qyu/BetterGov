@@ -34,14 +34,14 @@ class ServiceController extends Controller
         return response()->json($service->load('documentTypes'), 201);
     }
 
-    public function show($id)
+    public function show(int $id)
     {
         $service = Service::with('documentTypes')->findOrFail($id);
 
         return response()->json($service, 200);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id)
     {
         $service = Service::findOrFail($id);
 
@@ -65,11 +65,30 @@ class ServiceController extends Controller
         return response()->json($service->load('documentTypes'), 200);
     }
 
-    public function destroy($id)
+    public function destroy(int $id)
     {
         $service = Service::findOrFail($id);
         $service->delete();
 
         return response()->json(['message' => 'Service deleted'], 200);
     }
+
+    public function attachRequiredDocument(Request $request,int $serviceId)
+{
+    $validated = $request->validate([
+        'document_type_id' => 'required|exists:document_types,id',
+    ]);
+
+    $service = Service::findOrFail($serviceId);
+
+    $service->documentTypes()->syncWithoutDetaching([
+        $validated['document_type_id']
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Required document attached to service successfully',
+        'data' => $service->load('documentTypes')
+    ], 200);
+}
 }

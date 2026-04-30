@@ -23,7 +23,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('services', ServiceController::class);
     Route::apiResource('service-categories', ServiceCategoryController::class);
-
+Route::post('/services/{serviceId}/required-documents', [ServiceController::class, 'attachRequiredDocument']);
     Route::post('/response-documents', [ResponseDocumentController::class, 'store']);
 
     Route::get('/requests', [RequestController::class, 'index']);

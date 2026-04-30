@@ -61,7 +61,7 @@ public function index()
         ], 201);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id)
 {
     $slot = OfficeTimeSlot::findOrFail($id);
 
@@ -86,7 +86,7 @@ public function index()
     ], 200);
 }
 
-public function toggleActive($id)
+public function toggleActive(int $id)
 {
     $slot = OfficeTimeSlot::findOrFail($id);
 
