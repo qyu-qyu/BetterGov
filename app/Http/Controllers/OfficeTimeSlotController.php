@@ -7,6 +7,33 @@ use Illuminate\Http\Request;
 
 class OfficeTimeSlotController extends Controller
 {
+
+public function index()
+{
+    $slots = OfficeTimeSlot::with('office:id,name,email,phone,address')
+        ->latest()
+        ->get()
+        ->map(function ($slot) {
+            return [
+                'id' => $slot->id,
+                'office_name' => $slot->office->name ?? null,
+                'office_email' => $slot->office->email ?? null,
+                'office_phone' => $slot->office->phone ?? null,
+                'day_of_week' => $slot->day_of_week,
+                'start_time' => $slot->start_time,
+                'end_time' => $slot->end_time,
+                'max_capacity' => $slot->max_capacity,
+                'is_active' => $slot->is_active,
+                'created_at' => $slot->created_at,
+            ];
+        });
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Appointment slots retrieved successfully',
+        'data' => $slots
+    ], 200);
+}
     public function store(Request $request)
     {
         $data = $request->validate([

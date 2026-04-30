@@ -49,6 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/requests/{id}/status', [RequestController::class, 'updateStatus']);
 
         Route::post('/appointment-slots', [OfficeTimeSlotController::class, 'store']);
+        Route::get('/appointment-slots', [OfficeTimeSlotController::class, 'index']);
 
         Route::apiResource('users', UserController::class);
         Route::apiResource('offices', OfficeController::class);
