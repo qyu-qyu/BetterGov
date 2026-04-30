@@ -91,4 +91,32 @@ class ServiceController extends Controller
         'data' => $service->load('documentTypes')
     ], 200);
 }
+
+public function getRequiredDocuments(int $serviceId)
+{
+    $service = Service::with('documentTypes')->findOrFail($serviceId);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Service required documents retrieved successfully',
+        'data' => [
+            'service_id' => $service->id,
+            'service_name' => $service->name,
+            'required_documents' => $service->documentTypes
+        ]
+    ], 200);
+}
+
+public function removeRequiredDocument(int $serviceId,int $documentTypeId)
+{
+    $service = Service::findOrFail($serviceId);
+
+    $service->documentTypes()->detach($documentTypeId);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Required document removed from service successfully',
+        'data' => $service->load('documentTypes')
+    ], 200);
+}
 }

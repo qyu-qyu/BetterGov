@@ -25,6 +25,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('service-categories', ServiceCategoryController::class);
 Route::post('/services/{serviceId}/required-documents', [ServiceController::class, 'attachRequiredDocument']);
     Route::post('/response-documents', [ResponseDocumentController::class, 'store']);
+Route::get('/services/{serviceId}/required-documents', [ServiceController::class, 'getRequiredDocuments']);
+Route::delete('/services/{serviceId}/required-documents/{documentTypeId}', [ServiceController::class, 'removeRequiredDocument']);
 
     Route::get('/requests', [RequestController::class, 'index']);
     Route::post('/requests', [RequestController::class, 'store']);
