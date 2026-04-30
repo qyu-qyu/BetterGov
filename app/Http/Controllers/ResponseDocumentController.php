@@ -37,7 +37,7 @@ class ResponseDocumentController extends Controller
 
     public function getByRequest($requestId)
 {
-    $documents = ResponseDocument::where('request_id', $requestId)->get();
+    $documents = ResponseDocument::where('request_id', '=', $requestId, 'and')->get();
 
     return response()->json([
         'success' => true,

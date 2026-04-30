@@ -13,6 +13,7 @@ use App\Http\Controllers\ServiceCategoryController;
 use App\Http\Controllers\ResponseDocumentController;
 use App\Http\Controllers\OfficeTimeSlotController;
 use App\Http\Controllers\FeedbackController;
+use App\Http\Controllers\OfficeDashboardController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -60,6 +61,11 @@ Route::post('/feedback/{id}/response', [FeedbackController::class, 'respond']);
         Route::get('/appointment-slots', [OfficeTimeSlotController::class, 'index']);
         Route::put('/appointment-slots/{id}', [OfficeTimeSlotController::class, 'update']);
         Route::patch('/appointment-slots/{id}/toggle-active', [OfficeTimeSlotController::class, 'toggleActive']);
+
+Route::get('/office/dashboard/request-status-summary', [OfficeDashboardController::class, 'requestStatusSummary']);
+Route::get('/office/dashboard/appointment-summary', [OfficeDashboardController::class, 'appointmentSummary']);
+Route::get('/office/dashboard/document-summary', [OfficeDashboardController::class, 'documentSummary']);
+Route::get('/office/dashboard', [OfficeDashboardController::class, 'dashboard']);
 
         Route::apiResource('users', UserController::class);
         Route::apiResource('offices', OfficeController::class);
