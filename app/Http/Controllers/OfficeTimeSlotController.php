@@ -60,4 +60,46 @@ public function index()
             'data' => $slot
         ], 201);
     }
+
+    public function update(Request $request, $id)
+{
+    $slot = OfficeTimeSlot::findOrFail($id);
+
+    $data = $request->validate([
+        'day_of_week' => 'required|string|max:20',
+        'start_time' => 'required|date_format:H:i',
+        'end_time' => 'required|date_format:H:i|after:start_time',
+        'max_capacity' => 'required|integer|min:1',
+    ]);
+
+    $slot->update([
+        'day_of_week' => $data['day_of_week'],
+        'start_time' => $data['start_time'],
+        'end_time' => $data['end_time'],
+        'max_capacity' => $data['max_capacity'],
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Appointment slot updated successfully',
+        'data' => $slot
+    ], 200);
+}
+
+public function toggleActive($id)
+{
+    $slot = OfficeTimeSlot::findOrFail($id);
+
+    $slot->update([
+        'is_active' => !$slot->is_active
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => $slot->is_active
+            ? 'Appointment slot activated successfully'
+            : 'Appointment slot deactivated successfully',
+        'data' => $slot
+    ], 200);
+}
 }
