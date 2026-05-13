@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\OfficeTimeSlot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class AppointmentController extends Controller
 {
@@ -37,7 +38,8 @@ class AppointmentController extends Controller
             return response()->json(['message' => 'This time slot is not available.'], 422);
         }
 
-        $existing = Appointment::where('office_time_slot_id', $slot->id)
+        $existing = Appointment::query()
+            ->where('office_time_slot_id', $slot->id)
             ->where('appointment_date_only', $data['appointment_date_only'])
             ->where('status', '!=', 'cancelled')
             ->count();
@@ -46,11 +48,23 @@ class AppointmentController extends Controller
             return response()->json(['message' => 'This slot is fully booked for the selected date.'], 422);
         }
 
+        // Combine the selected date with the slot start time to populate legacy `appointment_date` datetime
+        $appointmentDate = null;
+        if (!empty($data['appointment_date_only']) && !empty($slot->start_time)) {
+            // `appointment_date_only` is a date (Y-m-d) and slot->start_time is H:i[:s]
+            try {
+                $appointmentDate = Carbon::parse($data['appointment_date_only'] . ' ' . $slot->start_time);
+            } catch (\Exception $e) {
+                $appointmentDate = Carbon::parse($data['appointment_date_only']);
+            }
+        }
+
         $appointment = Appointment::create([
             'user_id'               => Auth::id(),
             'office_id'             => $data['office_id'],
             'office_time_slot_id'   => $data['office_time_slot_id'],
             'appointment_date_only' => $data['appointment_date_only'],
+            'appointment_date'      => $appointmentDate,
             'status'                => 'pending',
             'notes'                 => $data['notes'] ?? null,
         ]);
@@ -64,7 +78,8 @@ class AppointmentController extends Controller
 
     public function cancel($id)
     {
-        $appointment = Appointment::where('id', $id)
+        $appointment = Appointment::query()
+            ->where('id', $id)
             ->where('user_id', Auth::id())
             ->firstOrFail();
 

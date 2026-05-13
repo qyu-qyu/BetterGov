@@ -2,24 +2,45 @@
 
 namespace Database\Seeders;
 
+use App\Models\Role;
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Seed roles and capture results directly
+        $adminRole   = Role::firstOrCreate(['name' => 'admin']);
+        $officeRole  = Role::firstOrCreate(['name' => 'office']);
+        $citizenRole = Role::firstOrCreate(['name' => 'citizen']);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // Seed demo users — password is plain text; the User model's 'hashed' cast handles bcrypt
+        User::firstOrCreate(
+            ['email' => 'admin@bettergov.lb'],
+            [
+                'name'     => 'Admin User',
+                'password' => 'Admin@1234',
+                'role_id'  => $adminRole->id,
+            ]
+        );
+
+        User::firstOrCreate(
+            ['email' => 'office@bettergov.lb'],
+            [
+                'name'     => 'Municipality Office',
+                'password' => 'Office@1234',
+                'role_id'  => $officeRole->id,
+            ]
+        );
+
+        User::firstOrCreate(
+            ['email' => 'citizen@bettergov.lb'],
+            [
+                'name'     => 'John Citizen',
+                'password' => 'Citizen@1234',
+                'role_id'  => $citizenRole->id,
+            ]
+        );
     }
 }
