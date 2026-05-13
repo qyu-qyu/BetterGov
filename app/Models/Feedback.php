@@ -11,6 +11,7 @@ class Feedback extends Model
     protected $fillable = [
         'user_id',
         'service_request_id',
+        'request_id',
         'comment',
         'rating',
     ];
@@ -23,6 +24,11 @@ class Feedback extends Model
     public function serviceRequest()
     {
         return $this->belongsTo(Request::class, 'service_request_id');
+    }
+
+    public function request()
+    {
+        return $this->belongsTo(Request::class, 'request_id');
     }
 
     public function responses()

@@ -102,4 +102,13 @@ public function toggleActive(int $id)
         'data' => $slot
     ], 200);
 }
+
+public function byOffice(int $officeId)
+{
+    $slots = OfficeTimeSlot::where('office_id', $officeId)
+        ->where('is_active', true)
+        ->get();
+
+    return response()->json(['success' => true, 'data' => $slots]);
+}
 }

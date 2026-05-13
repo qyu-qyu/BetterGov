@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Office extends Model
 {
@@ -14,6 +15,9 @@ class Office extends Model
        'address',
        'phone',
        'email',
+       'latitude',
+       'longitude',
+       'working_hours',
    ];
 
    public function municipality(): BelongsTo
@@ -24,5 +28,15 @@ class Office extends Model
    public function officeType(): BelongsTo
    {
        return $this->belongsTo(OfficeType::class);
+   }
+
+   public function services()
+   {
+       return $this->hasMany(Service::class);
+   }
+
+   public function timeSlots()
+   {
+       return $this->hasMany(OfficeTimeSlot::class);
    }
 }

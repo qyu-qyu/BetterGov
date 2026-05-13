@@ -15,12 +15,14 @@ return new class extends Migration
             $table->id();
 
                     $table->foreignId('feedback_id')
-              ->constrained('feedback')
-              ->onDelete('cascade');
+                      ->references('id')
+                      ->on('feedback')
+                      ->onDelete('cascade');
 
-        $table->foreignId('responded_by')
-              ->constrained('users')
-              ->onDelete('cascade');
+                  $table->foreignId('responded_by')
+                      ->references('id')
+                      ->on('users')
+                      ->onDelete('cascade');
 
         $table->text('response');
         

@@ -7,20 +7,20 @@ use Illuminate\Database\Eloquent\Model;
 class RequestDocument extends Model
 {
 
-protected $fillable = [
-    'service_request_id',
-    'document_type_id',
-    'file_path'
-];
+    protected $fillable = [
+        'request_id',
+        'document_type_id',
+        'file_path',
+        'file_name',
+    ];
 
+    public function request()
+    {
+        return $this->belongsTo(Request::class);
+    }
 
-    public function serviceRequest()
-{
-    return $this->belongsTo(ServiceRequest::class);
-}
-
-public function documentType()
-{
-    return $this->belongsTo(DocumentType::class);
-}
+    public function documentType()
+    {
+        return $this->belongsTo(DocumentType::class);
+    }
 }

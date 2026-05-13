@@ -83,6 +83,7 @@ public function index()
         'service:id,name',
         'office:id,name'
     ])
+    ->where('user_id', Auth::id())
     ->latest()
     ->get()
     ->map(function ($req) {

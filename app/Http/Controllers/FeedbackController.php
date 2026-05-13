@@ -9,6 +9,36 @@ use Illuminate\Support\Facades\Auth;
 
 class FeedbackController extends Controller
 {
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'request_id' => 'required|exists:requests,id',
+            'rating'     => 'required|integer|min:1|max:5',
+            'comment'    => 'nullable|string|max:2000',
+        ]);
+
+        $existing = \App\Models\Feedback::where('user_id', Auth::id())
+            ->where('request_id', $data['request_id'])
+            ->first();
+
+        if ($existing) {
+            return response()->json(['message' => 'You have already submitted feedback for this request.'], 422);
+        }
+
+        $feedback = \App\Models\Feedback::create([
+            'user_id'    => Auth::id(),
+            'request_id' => $data['request_id'],
+            'rating'     => $data['rating'],
+            'comment'    => $data['comment'] ?? null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Feedback submitted successfully.',
+            'data'    => $feedback,
+        ], 201);
+    }
+
     public function index()
     {
         $feedback = Feedback::with([
