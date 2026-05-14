@@ -39,4 +39,9 @@ class Office extends Model
    {
        return $this->hasMany(OfficeTimeSlot::class);
    }
+
+   public function requests()
+   {
+       return $this->hasMany(\App\Models\Request::class);
+   }
 }

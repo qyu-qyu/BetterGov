@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Request;
+use App\Models\Request as ServiceRequest;
 use Illuminate\Http\Request as HttpRequest;
 use App\Models\StatusHistory;
 use App\Models\Notification;
@@ -10,121 +10,102 @@ use Illuminate\Support\Facades\Auth;
 
 class RequestController extends Controller
 {
-   
+    public function index(HttpRequest $httpRequest)
+    {
+        $user = Auth::user();
+        $query = ServiceRequest::with([
+            'user:id,name,email',
+            'service:id,name',
+            'office:id,name',
+        ])->latest();
 
-   public function store(HttpRequest $request)
-   {
-       $data = $request->validate([
-           'service_id' => 'required|exists:services,id',
-           'office_id' => 'required|exists:offices,id',
-           'notes' => 'nullable|string'
-       ]);
+        if ($user->role?->name !== 'admin') {
+            $query->where('user_id', $user->id);
+        }
 
-       $data['user_id'] = Auth::id();
+        if ($httpRequest->filled('status')) {
+            $query->where('status', $httpRequest->status);
+        }
 
-       $req = Request::create($data);
+        if ($httpRequest->filled('office_id')) {
+            $query->where('office_id', $httpRequest->office_id);
+        }
 
-       return response()->json([
-           'message' => 'Request created successfully',
-           'request' => $req
-       ], 201);
-   }
+        $requests = $query->get()->map(fn($req) => [
+            'id'             => $req->id,
+            'citizen_name'   => $req->user->name ?? null,
+            'citizen_email'  => $req->user->email ?? null,
+            'service_name'   => $req->service->name ?? null,
+            'office_name'    => $req->office->name ?? null,
+            'status'         => $req->status,
+            'notes'          => $req->notes,
+            'created_at'     => $req->created_at,
+        ]);
 
-public function updateStatus(HttpRequest $request, $id)
-{
-$data = $request->validate([
-    'status' => 'required|string|in:pending,processing,approved,rejected,completed',
-    'comment' => 'nullable|string|max:1000'
-]);
-
-    $serviceRequest = Request::findOrFail($id);
-
-    $oldStatus = $serviceRequest->status;
-    $newStatus = $data['status'];
-
-    if ($oldStatus === $newStatus) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Request already has this status',
-            'data' => $serviceRequest
-        ], 200);
+        return response()->json(['success' => true, 'data' => $requests]);
     }
 
-    $serviceRequest->update([
-        'status' => $newStatus
-    ]);
+    public function store(HttpRequest $request)
+    {
+        $data = $request->validate([
+            'service_id' => 'required|exists:services,id',
+            'office_id'  => 'required|exists:offices,id',
+            'notes'      => 'nullable|string',
+        ]);
 
-StatusHistory::create([
-    'request_id' => $serviceRequest->id,
-    'old_status' => $oldStatus,
-    'new_status' => $newStatus,
-    'changed_by' => Auth::id(),
-    'comment' => $data['comment'] ?? null,
-]);
+        $data['user_id'] = Auth::id();
 
-    Notification::create([
-        'user_id' => $serviceRequest->user_id,
-        'request_id' => $serviceRequest->id,
-        'message' => 'Your request status has been updated from ' . $oldStatus . ' to ' . $newStatus,
-        'is_read' => false,
-    ]);
+        $req = ServiceRequest::create($data);
 
-    return response()->json([
-        'success' => true,
-        'message' => 'Request status updated successfully',
-        'data' => $serviceRequest
-    ], 200);
+        return response()->json(['success' => true, 'message' => 'Request created.', 'data' => $req], 201);
+    }
+
+    public function show(int $id)
+    {
+        $request = ServiceRequest::with([
+            'user:id,name,email',
+            'service:id,name,fee,estimated_time',
+            'office:id,name,email,phone,address',
+            'statusHistories',
+            'payments',
+            'messages',
+        ])->findOrFail($id);
+
+        return response()->json(['success' => true, 'data' => $request]);
+    }
+
+    public function updateStatus(HttpRequest $request, int $id)
+    {
+        $data = $request->validate([
+            'status'  => 'required|in:pending,processing,approved,rejected,completed',
+            'comment' => 'nullable|string|max:1000',
+        ]);
+
+        $serviceRequest = ServiceRequest::findOrFail($id);
+        $oldStatus      = $serviceRequest->status;
+        $newStatus      = $data['status'];
+
+        if ($oldStatus === $newStatus) {
+            return response()->json(['success' => false, 'message' => 'Request already has this status.', 'data' => $serviceRequest]);
+        }
+
+        $serviceRequest->update(['status' => $newStatus]);
+
+        StatusHistory::create([
+            'request_id' => $serviceRequest->id,
+            'old_status' => $oldStatus,
+            'new_status' => $newStatus,
+            'changed_by' => Auth::id(),
+            'comment'    => $data['comment'] ?? null,
+        ]);
+
+        Notification::create([
+            'user_id'    => $serviceRequest->user_id,
+            'request_id' => $serviceRequest->id,
+            'message'    => "Your request status changed from {$oldStatus} to {$newStatus}.",
+            'is_read'    => false,
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Status updated.', 'data' => $serviceRequest]);
+    }
 }
-
-public function index()
-{
-    $requests = Request::with([
-        'user:id,name,email',
-        'service:id,name',
-        'office:id,name'
-    ])
-    ->where('user_id', Auth::id())
-    ->latest()
-    ->get()
-    ->map(function ($req) {
-        return [
-            'id' => $req->id,
-            'citizen_name' => $req->user->name ?? null,
-            'citizen_email' => $req->user->email ?? null,
-            'service_name' => $req->service->name ?? null,
-            'office_name' => $req->office->name ?? null,
-            'status' => $req->status,
-            'notes' => $req->notes,
-            'created_at' => $req->created_at,
-        ];
-    });
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Requests retrieved successfully',
-        'data' => $requests
-    ], 200);
-}
-
-public function show($id)
-{
-    $request = Request::with([
-        'user:id,name,email',
-        'service:id,name,fee,estimated_time',
-        'office:id,name,email,phone,address',
-        'statusHistories',
-        'payments',
-        'messages'
-    ])->findOrFail($id);
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Request details retrieved successfully',
-        'data' => $request
-    ], 200);
-}
-
-
-
-}
-

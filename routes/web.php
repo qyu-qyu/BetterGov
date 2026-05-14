@@ -28,9 +28,24 @@ Route::get('/register', fn() => redirect('/?tab=register'))->name('register');
 | Dashboard stubs
 |--------------------------------------------------------------------------
 */
-Route::get('/admin/dashboard',  fn() => view('dashboard', ['role' => 'admin']))->name('admin.dashboard');
 Route::get('/office/dashboard', fn() => view('dashboard', ['role' => 'office']))->name('office.dashboard');
 Route::get('/dashboard',        fn() => view('dashboard', ['role' => 'user']))->name('dashboard');
+
+/*
+|--------------------------------------------------------------------------
+| Admin portal pages
+|--------------------------------------------------------------------------
+*/
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard',      fn() => view('admin.dashboard'))->name('dashboard');
+    Route::get('/users',          fn() => view('admin.users.index'))->name('users.index');
+    Route::get('/offices',        fn() => view('admin.offices.index'))->name('offices.index');
+    Route::get('/municipalities', fn() => view('admin.municipalities.index'))->name('municipalities.index');
+    Route::get('/services',       fn() => view('admin.services.index'))->name('services.index');
+    Route::get('/requests',       fn() => view('admin.requests.index'))->name('requests.index');
+    Route::get('/requests/{id}',  fn() => view('admin.requests.show'))->name('requests.show');
+    Route::get('/reports',        fn() => view('admin.reports.index'))->name('reports.index');
+});
 
 /*
 |--------------------------------------------------------------------------

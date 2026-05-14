@@ -513,12 +513,17 @@ select:focus{
             const token = data.token ?? (data.data ? data.data.token : undefined) ?? data.access_token;
             if (token) {
               localStorage.setItem('citizen_token', token);
-            } else if (data?.token) {
-              localStorage.setItem('citizen_token', data.token);
             }
 
-            // Redirect to citizen services
-            window.location.href = '/citizen/services';
+            // Redirect based on role
+            const role = data.user?.role ?? '';
+            if (role === 'admin') {
+              window.location.href = '/admin/dashboard';
+            } else if (role === 'office') {
+              window.location.href = '/office/dashboard';
+            } else {
+              window.location.href = '/citizen/services';
+            }
 
           } catch (err) {
             errEl.textContent = 'Network error, try again.';
