@@ -188,7 +188,7 @@ async function loadMessages() {
         const mine = m.sender_id === currentUserId;
         return `<div style="display:flex;flex-direction:${mine ? 'row-reverse' : 'row'};gap:8px;align-items:flex-end;">
             <div style="max-width:78%;background:${mine ? '#dbeafe' : '#f8fafc'};border:1px solid #e2e8f0;border-radius:10px;padding:8px 12px;">
-                <div style="font-size:13px;color:#1e293b;">${m.body ?? m.message ?? ''}</div>
+                <div style="font-size:13px;color:#1e293b;">${m.message ?? ''}</div>
                 <div style="font-size:10px;color:#94a3b8;margin-top:3px;text-align:${mine ? 'right' : 'left'}">${fmtDateTime(m.created_at)}</div>
             </div>
         </div>`;
@@ -200,7 +200,7 @@ async function sendMsg() {
     const input = document.getElementById('msg-input');
     const body  = input.value.trim();
     if (!body) return;
-    const res = await api('POST', '/messages', { request_id: Number(reqId), body });
+    const res = await api('POST', '/messages', { request_id: Number(reqId), message: body });
     if (res && res.ok) { input.value = ''; loadMessages(); }
     else { showAlert('Failed to send message.', 'danger'); }
 }

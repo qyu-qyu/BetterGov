@@ -200,8 +200,9 @@
 
         const res = await fetch(API_BASE + path, opts);
         if (res.status === 401) {
-            // Keep users on the current page; callers decide how to handle auth failures.
             localStorage.removeItem('citizen_token');
+            window.location.href = '/login';
+            return res;
         }
         return res;
     }
@@ -245,7 +246,7 @@
     async function logout() {
         await api('POST', '/logout');
         localStorage.removeItem('citizen_token');
-        window.location.href = '/citizen/services';
+        window.location.href = '/login';
     }
 
     // Load current user info

@@ -75,8 +75,14 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Role</label>
-                    <select id="f-role" class="form-select">
+                    <select id="f-role" class="form-select" onchange="toggleOfficeField()">
                         <option value="">Select a role…</option>
+                    </select>
+                </div>
+                <div class="mb-3" id="office-field" style="display:none">
+                    <label class="form-label fw-semibold">Assigned Office</label>
+                    <select id="f-office" class="form-select">
+                        <option value="">None</option>
                     </select>
                 </div>
                 <div class="form-check form-switch">
@@ -112,21 +118,31 @@
 
 @push('scripts')
 <script>
-let allUsers = [], allRoles = [], deleteId = null;
+let allUsers = [], allRoles = [], allOffices = [], deleteId = null;
 
 async function loadAll() {
-    const [uRes, rRes] = await Promise.all([api('GET', '/users'), api('GET', '/roles')]);
+    const [uRes, rRes, oRes] = await Promise.all([api('GET', '/users'), api('GET', '/roles'), api('GET', '/offices')]);
     if (uRes && uRes.ok) { const d = await uRes.json(); allUsers = d.data ?? d; }
     if (rRes && rRes.ok) { const d = await rRes.json(); allRoles = d.data ?? d; }
+    if (oRes && oRes.ok) { const d = await oRes.json(); allOffices = d.data ?? d; }
     populateRoleDropdowns();
     renderTable(allUsers);
 }
 
 function populateRoleDropdowns() {
-    const opts = allRoles.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+    const opts = allRoles.map(r => `<option value="${r.id}" data-name="${r.name}">${r.name}</option>`).join('');
     document.getElementById('f-role').innerHTML = '<option value="">Select a role…</option>' + opts;
     document.getElementById('filter-role').innerHTML =
         '<option value="">All roles</option>' + allRoles.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
+    document.getElementById('f-office').innerHTML =
+        '<option value="">None</option>' + allOffices.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+}
+
+function toggleOfficeField() {
+    const sel      = document.getElementById('f-role');
+    const opt      = sel.options[sel.selectedIndex];
+    const roleName = opt?.dataset?.name ?? '';
+    document.getElementById('office-field').style.display = roleName === 'office' ? '' : 'none';
 }
 
 function renderTable(users) {
@@ -180,8 +196,10 @@ function openCreate() {
     document.getElementById('f-email').value = '';
     document.getElementById('f-password').value = '';
     document.getElementById('f-role').value = '';
+    document.getElementById('f-office').value = '';
     document.getElementById('f-active').checked = true;
     document.getElementById('pw-hint').style.display = 'none';
+    document.getElementById('office-field').style.display = 'none';
 }
 
 function openEdit(u) {
@@ -190,18 +208,22 @@ function openEdit(u) {
     document.getElementById('f-name').value  = u.name ?? '';
     document.getElementById('f-email').value = u.email ?? '';
     document.getElementById('f-password').value = '';
-    document.getElementById('f-role').value  = allRoles.find(r => r.name === u.role?.name)?.id ?? '';
+    document.getElementById('f-role').value   = allRoles.find(r => r.name === u.role?.name)?.id ?? '';
+    document.getElementById('f-office').value = u.office_id ?? '';
     document.getElementById('f-active').checked = !!u.is_active;
+    toggleOfficeField();
     document.getElementById('pw-hint').style.display = '';
     new bootstrap.Modal(document.getElementById('userModal')).show();
 }
 
 async function saveUser() {
     const id = document.getElementById('edit-id').value;
+    const officeId = document.getElementById('f-office').value;
     const payload = {
         name:      document.getElementById('f-name').value.trim(),
         email:     document.getElementById('f-email').value.trim(),
         role_id:   document.getElementById('f-role').value,
+        office_id: officeId ? parseInt(officeId) : null,
         is_active: document.getElementById('f-active').checked,
     };
     const pw = document.getElementById('f-password').value;

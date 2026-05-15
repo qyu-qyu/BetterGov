@@ -58,7 +58,8 @@ async function loadData() {
         api('GET', '/offices'),
     ]);
 
-    allServices   = await svcRes.json();
+    const svcData = await svcRes.json();
+    allServices   = Array.isArray(svcData) ? svcData : (svcData.data ?? []);
     const catData = await catRes.json();
     const offData = await offRes.json();
 

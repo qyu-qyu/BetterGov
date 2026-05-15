@@ -4,11 +4,13 @@
 @section('page-title', 'Find Offices')
 
 @push('head')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
     #map { height: 450px; width: 100%; border-radius: 10px; }
     .office-card { cursor: pointer; transition: transform .15s, box-shadow .15s; }
     .office-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.12); }
     .office-card.selected { border: 2px solid #1a56db; }
+    .leaflet-popup-content b { color: #1e293b; }
 </style>
 @endpush
 
@@ -44,10 +46,6 @@
         <div class="card mb-0">
             <div class="card-body p-2">
                 <div id="map"></div>
-                <div id="map-placeholder" class="d-none text-center py-5 text-muted">
-                    <i class="bi bi-map display-5 d-block mb-2"></i>
-                    <p>Add <code>GOOGLE_MAPS_API_KEY</code> to your <code>.env</code> to enable the map.</p>
-                </div>
             </div>
         </div>
         <div id="nearest-banner" class="d-none alert alert-info mt-2 mb-0 small">
@@ -100,16 +98,17 @@
 @endsection
 
 @push('scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-let allOffices = [], allServices = [], map, markers = [], userPosition = null;
-const mapsKey = '{{ env("GOOGLE_MAPS_API_KEY", "") }}';
+let allOffices = [], allServices = [], map, markers = [], userMarker = null;
 
 async function loadData() {
     const [offRes, svcRes] = await Promise.all([
         fetch('/api/offices', { headers: { Accept: 'application/json' } }),
         fetch('/api/services', { headers: { Accept: 'application/json' } }),
     ]);
-    allOffices  = await offRes.json();
+    const offData = await offRes.json();
+    allOffices  = Array.isArray(offData) ? offData : (offData.data ?? []);
     const svcData = await svcRes.json();
     allServices = Array.isArray(svcData) ? svcData : (svcData.data ?? []);
 
@@ -123,32 +122,27 @@ async function loadData() {
     allServices.forEach(s => svcSel.insertAdjacentHTML('beforeend', `<option value="${s.office_id}">${s.name}</option>`));
 
     renderOffices(allOffices);
-    if (mapsKey) initMap(); else document.getElementById('map-placeholder').classList.remove('d-none');
+    initMap();
 }
 
 function initMap() {
-    const defaultCenter = { lat: 33.8547, lng: 35.8623 }; // Lebanon default
-    map = new google.maps.Map(document.getElementById('map'), {
-        zoom: 9,
-        center: defaultCenter,
-        mapTypeControl: false,
-        streetViewControl: false,
-    });
+    map = L.map('map').setView([33.8547, 35.8623], 9);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
+    }).addTo(map);
     placeMarkers(allOffices);
 }
 
 function placeMarkers(offices) {
-    markers.forEach(m => m.setMap(null));
+    markers.forEach(m => m.remove());
     markers = [];
     offices.forEach(o => {
         if (!o.latitude || !o.longitude) return;
-        const marker = new google.maps.Marker({
-            position: { lat: parseFloat(o.latitude), lng: parseFloat(o.longitude) },
-            map,
-            title: o.name,
-            icon: { url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png' }
-        });
-        marker.addListener('click', () => openOfficeModal(o));
+        const marker = L.marker([parseFloat(o.latitude), parseFloat(o.longitude)])
+            .addTo(map)
+            .bindPopup(`<b>${o.name}</b><br><span style="font-size:12px;color:#64748b">${o.address ?? ''}</span>`);
+        marker.on('click', () => openOfficeModal(o));
         markers.push(marker);
     });
 }
@@ -159,8 +153,8 @@ function renderOffices(offices) {
         list.innerHTML = `<div class="text-center text-muted py-4"><i class="bi bi-building-x display-6 d-block mb-2"></i>No offices found.</div>`;
         return;
     }
-    list.innerHTML = offices.map((o, i) => `
-        <div class="card office-card mb-2" onclick="selectOffice(${o.id})">
+    list.innerHTML = offices.map(o => `
+        <div class="card office-card mb-2" onclick="selectOffice(${o.id}, this)">
             <div class="card-body py-2 px-3">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
@@ -177,14 +171,13 @@ function renderOffices(offices) {
         </div>`).join('');
 }
 
-function selectOffice(id) {
+function selectOffice(id, el) {
     const office = allOffices.find(o => o.id === id);
     if (!office) return;
     document.querySelectorAll('.office-card').forEach(c => c.classList.remove('selected'));
-    event.currentTarget.classList.add('selected');
+    el.classList.add('selected');
     if (map && office.latitude && office.longitude) {
-        map.setCenter({ lat: parseFloat(office.latitude), lng: parseFloat(office.longitude) });
-        map.setZoom(15);
+        map.setView([parseFloat(office.latitude), parseFloat(office.longitude)], 15);
     }
     openOfficeModal(office);
 }
@@ -198,19 +191,20 @@ async function openOfficeModal(office) {
 
     const mapLink = document.getElementById('modal-map-link');
     if (office.latitude && office.longitude) {
-        mapLink.href = `https://www.google.com/maps?q=${office.latitude},${office.longitude}`;
+        mapLink.href = `https://www.openstreetmap.org/?mlat=${office.latitude}&mlon=${office.longitude}#map=16/${office.latitude}/${office.longitude}`;
         mapLink.classList.remove('d-none');
+    } else {
+        mapLink.classList.add('d-none');
     }
 
     document.getElementById('book-appointment-btn').href = `/citizen/appointments?office_id=${office.id}`;
 
-    // Load services for this office
     const officeSvcs = allServices.filter(s => s.office_id === office.id);
     const svcList = document.getElementById('modal-services');
     svcList.innerHTML = officeSvcs.length
         ? officeSvcs.map(s => `<li class="list-group-item d-flex justify-content-between align-items-center px-0">
             <span class="small">${s.name}</span>
-            <a href="/citizen/services/${s.id}" class="btn btn-xs btn-sm btn-outline-primary py-0">Apply</a>
+            <a href="/citizen/services/${s.id}" class="btn btn-sm btn-outline-primary py-0">Apply</a>
           </li>`).join('')
         : '<li class="list-group-item px-0 text-muted small">No services listed</li>';
 
@@ -218,11 +212,11 @@ async function openOfficeModal(office) {
 }
 
 function applyFilters() {
-    const search  = document.getElementById('office-search').value.toLowerCase();
-    const typeId  = document.getElementById('type-filter').value;
+    const search          = document.getElementById('office-search').value.toLowerCase();
+    const typeId          = document.getElementById('type-filter').value;
     const officeIdFromSvc = document.getElementById('service-filter').value;
 
-    let filtered = allOffices.filter(o => {
+    const filtered = allOffices.filter(o => {
         const matchSearch  = !search  || o.name.toLowerCase().includes(search) || (o.address ?? '').toLowerCase().includes(search);
         const matchType    = !typeId  || String(o.office_type_id) === typeId;
         const matchService = !officeIdFromSvc || String(o.id) === officeIdFromSvc;
@@ -236,27 +230,36 @@ function applyFilters() {
 function findNearest() {
     if (!navigator.geolocation) { showAlert('Geolocation not supported.', 'warning'); return; }
     navigator.geolocation.getCurrentPosition(pos => {
-        userPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        const { latitude, longitude } = pos.coords;
+
+        if (userMarker) userMarker.remove();
+        if (map) {
+            userMarker = L.marker([latitude, longitude], {
+                icon: L.divIcon({
+                    className: '',
+                    html: '<div style="width:14px;height:14px;background:#ef4444;border:3px solid #fff;border-radius:50%;box-shadow:0 0 6px rgba(0,0,0,.4)"></div>',
+                    iconSize: [14, 14],
+                    iconAnchor: [7, 7],
+                }),
+            }).addTo(map).bindPopup('You are here').openPopup();
+            map.setView([latitude, longitude], 12);
+        }
+
         const sorted = [...allOffices].map(o => ({
             ...o,
             distance: (o.latitude && o.longitude)
-                ? haversine(userPosition.lat, userPosition.lng, parseFloat(o.latitude), parseFloat(o.longitude))
-                : Infinity
+                ? haversine(latitude, longitude, parseFloat(o.latitude), parseFloat(o.longitude))
+                : Infinity,
         })).sort((a, b) => a.distance - b.distance);
 
         renderOffices(sorted);
-        if (map) {
-            map.setCenter(userPosition);
-            map.setZoom(12);
-            new google.maps.Marker({ position: userPosition, map, title: 'You are here',
-                icon: { url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png' } });
-            placeMarkers(sorted);
-        }
+        if (map) placeMarkers(sorted);
         document.getElementById('nearest-banner').classList.remove('d-none');
     }, () => showAlert('Could not determine your location.', 'danger'));
 }
 
 function clearNearest() {
+    if (userMarker) { userMarker.remove(); userMarker = null; }
     document.getElementById('nearest-banner').classList.add('d-none');
     renderOffices(allOffices);
     if (map) placeMarkers(allOffices);
@@ -275,9 +278,4 @@ document.getElementById('service-filter').addEventListener('change', applyFilter
 
 loadData();
 </script>
-@if(env('GOOGLE_MAPS_API_KEY'))
-<script async defer
-    src="https://maps.googleapis.com/maps/api/js?key={{ env('GOOGLE_MAPS_API_KEY') }}&callback=initMap">
-</script>
-@endif
 @endpush

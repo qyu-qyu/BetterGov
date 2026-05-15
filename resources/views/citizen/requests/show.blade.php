@@ -123,7 +123,7 @@ async function loadAll() {
     document.getElementById('info-service').textContent = req.service?.name   ?? '—';
     document.getElementById('info-office').textContent   = req.office?.name   ?? '—';
     document.getElementById('info-fee').textContent      = req.service?.fee   ? '$' + parseFloat(req.service.fee).toFixed(2) : '—';
-    document.getElementById('info-time').textContent     = req.service?.estimated_time ? req.service.estimated_time + ' min' : '—';
+    document.getElementById('info-time').textContent     = req.service?.estimated_time ?? '—';
     document.getElementById('info-notes').textContent    = req.notes ?? 'None';
 
     // Timeline

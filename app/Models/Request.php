@@ -8,6 +8,7 @@ use App\Models\StatusHistory;
 use App\Models\Payment;
 use App\Models\Message;
 use App\Models\ResponseDocument;
+use App\Models\RequestDocument;
 
 class Request extends Model
 {
@@ -52,7 +53,12 @@ class Request extends Model
    }
    
    public function responseDocuments()
-{
-    return $this->hasMany(ResponseDocument::class, 'request_id');
-}
+   {
+       return $this->hasMany(ResponseDocument::class, 'request_id');
+   }
+
+   public function requestDocuments()
+   {
+       return $this->hasMany(RequestDocument::class, 'request_id');
+   }
 }

@@ -10,7 +10,8 @@ class MessageController extends Controller
 {
    public function index()
    {
-       return Message::with(['request', 'sender'])->get();
+       $messages = Message::with(['request', 'sender'])->get();
+       return response()->json(['success' => true, 'data' => $messages]);
    }
 
    public function store(Request $request)

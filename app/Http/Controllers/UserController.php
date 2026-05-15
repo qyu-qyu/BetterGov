@@ -10,7 +10,7 @@ class UserController extends Controller
 {
     public function index(): JsonResponse
     {
-        $users = User::with('role')->get();
+        $users = User::with(['role', 'office:id,name'])->get();
 
         return response()->json(['success' => true, 'data' => $users]);
     }
@@ -22,6 +22,7 @@ class UserController extends Controller
             'email'     => 'required|email|unique:users,email',
             'password'  => 'required|string|min:8',
             'role_id'   => 'required|exists:roles,id',
+            'office_id' => 'nullable|exists:offices,id',
             'is_active' => 'boolean',
         ]);
 
@@ -30,6 +31,7 @@ class UserController extends Controller
             'email'     => strtolower(trim($request->email)),
             'password'  => $request->password,
             'role_id'   => $request->role_id,
+            'office_id' => $request->office_id ?? null,
             'is_active' => $request->boolean('is_active', true),
         ]);
 
@@ -40,7 +42,7 @@ class UserController extends Controller
 
     public function show(string $id): JsonResponse
     {
-        $user = User::with('role')->findOrFail($id);
+        $user = User::with(['role', 'office:id,name'])->findOrFail($id);
 
         return response()->json(['success' => true, 'data' => $user]);
     }
@@ -54,12 +56,14 @@ class UserController extends Controller
             'email'     => 'sometimes|email|unique:users,email,' . $user->id,
             'password'  => 'nullable|string|min:8',
             'role_id'   => 'sometimes|exists:roles,id',
+            'office_id' => 'nullable|exists:offices,id',
             'is_active' => 'sometimes|boolean',
         ]);
 
-        $user->name    = $request->input('name', $user->name);
-        $user->email   = isset($request->email) ? strtolower(trim($request->email)) : $user->email;
-        $user->role_id = $request->input('role_id', $user->role_id);
+        $user->name      = $request->input('name', $user->name);
+        $user->email     = isset($request->email) ? strtolower(trim($request->email)) : $user->email;
+        $user->role_id   = $request->input('role_id', $user->role_id);
+        $user->office_id = $request->has('office_id') ? $request->office_id : $user->office_id;
 
         if ($request->has('is_active')) {
             $user->is_active = $request->boolean('is_active');

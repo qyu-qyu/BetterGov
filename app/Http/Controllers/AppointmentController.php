@@ -12,15 +12,18 @@ class AppointmentController extends Controller
 {
     public function index()
     {
-        $appointments = Appointment::with(['office', 'timeSlot', 'user:id,name,email'])
-            ->where('user_id', Auth::id())
-            ->latest()
-            ->get();
+        $user = Auth::user();
+        $role = $user->role?->name;
 
-        return response()->json([
-            'success' => true,
-            'data' => $appointments,
-        ]);
+        $query = Appointment::with(['office', 'timeSlot', 'user:id,name,email'])->latest();
+
+        if ($role === 'office') {
+            $query->where('office_id', $user->office_id);
+        } else {
+            $query->where('user_id', $user->id);
+        }
+
+        return response()->json(['success' => true, 'data' => $query->get()]);
     }
 
     public function store(Request $request)
@@ -54,7 +57,7 @@ class AppointmentController extends Controller
             // `appointment_date_only` is a date (Y-m-d) and slot->start_time is H:i[:s]
             try {
                 $appointmentDate = Carbon::parse($data['appointment_date_only'] . ' ' . $slot->start_time);
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 $appointmentDate = Carbon::parse($data['appointment_date_only']);
             }
         }
@@ -76,7 +79,7 @@ class AppointmentController extends Controller
         ], 201);
     }
 
-    public function cancel($id)
+    public function cancel(string $id)
     {
         $appointment = Appointment::query()
             ->where('id', $id)

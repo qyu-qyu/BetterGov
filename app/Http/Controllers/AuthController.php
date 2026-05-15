@@ -94,7 +94,7 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user()->load('role');
+        $user = $request->user()->load(['role', 'office:id,name']);
 
         return response()->json([
             'success' => true,
@@ -103,6 +103,8 @@ class AuthController extends Controller
                 'name'       => $user->name,
                 'email'      => $user->email,
                 'role'       => $user->role?->name,
+                'office_id'  => $user->office_id,
+                'office'     => $user->office ? ['id' => $user->office->id, 'name' => $user->office->name] : null,
                 'created_at' => $user->created_at,
             ],
         ]);

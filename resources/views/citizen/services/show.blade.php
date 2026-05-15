@@ -103,15 +103,16 @@ async function loadService() {
         return;
     }
 
-    const svc     = await svcRes.json();
-    const docData = await detailRes.json();
+    const svcWrapper = await svcRes.json();
+    const svc        = svcWrapper.data ?? svcWrapper;
+    const docData    = await detailRes.json();
 
     requiredDocs = docData.data?.required_documents ?? svc.document_types ?? [];
 
     document.getElementById('svc-name').textContent     = svc.name;
     document.getElementById('svc-category').textContent = svc.category?.name ?? '—';
     document.getElementById('svc-fee').textContent      = '$' + parseFloat(svc.fee ?? 0).toFixed(2);
-    document.getElementById('svc-time').textContent     = (svc.estimated_time ?? '—') + ' min estimated';
+    document.getElementById('svc-time').textContent     = svc.estimated_time ?? '—';
     document.getElementById('service-id').value         = svc.id;
     document.getElementById('office-id').value          = svc.office_id;
 
@@ -163,10 +164,15 @@ function buildUploadFields() {
     const container = document.getElementById('doc-upload-fields');
     container.innerHTML = requiredDocs.map((d, i) => `
         <div class="mb-3">
-            <label class="form-label small fw-semibold">${d.name ?? 'Document ' + (i+1)}</label>
+            <label class="form-label small fw-semibold">
+                ${d.name ?? 'Document ' + (i+1)}
+                <span class="text-danger">*</span>
+                <span class="text-muted fw-normal">(required)</span>
+            </label>
             <input type="file" class="form-control form-control-sm doc-file"
                 data-doc-type-id="${d.id ?? ''}"
-                accept=".pdf,.jpg,.jpeg,.png">
+                accept=".pdf,.jpg,.jpeg,.png"
+                required>
         </div>`
     ).join('');
 }
@@ -200,7 +206,7 @@ document.getElementById('request-form').addEventListener('submit', async functio
     }
 
     const reqData = await reqRes.json();
-    const requestId = reqData.request?.id ?? reqData.id;
+    const requestId = reqData.data?.id ?? reqData.id;
 
     // 2. Upload documents
     const fileInputs = document.querySelectorAll('.doc-file');

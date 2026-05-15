@@ -18,6 +18,7 @@ class User extends Authenticatable
        'email',
        'password',
        'role_id',
+       'office_id',
        'is_active',
    ];
 
@@ -38,6 +39,11 @@ class User extends Authenticatable
    public function role(): BelongsTo
    {
        return $this->belongsTo(Role::class);
+   }
+
+   public function office(): BelongsTo
+   {
+       return $this->belongsTo(Office::class);
    }
 
    public function serviceRequests(): HasMany

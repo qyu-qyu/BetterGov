@@ -25,11 +25,19 @@ Route::get('/register', fn() => redirect('/?tab=register'))->name('register');
 
 /*
 |--------------------------------------------------------------------------
-| Dashboard stubs
+| Office portal pages
 |--------------------------------------------------------------------------
 */
-Route::get('/office/dashboard', fn() => view('dashboard', ['role' => 'office']))->name('office.dashboard');
-Route::get('/dashboard',        fn() => view('dashboard', ['role' => 'user']))->name('dashboard');
+Route::prefix('office')->name('office.')->group(function () {
+    Route::get('/dashboard',     fn() => view('office.dashboard'))->name('dashboard');
+    Route::get('/requests',      fn() => view('office.requests.index'))->name('requests.index');
+    Route::get('/requests/{id}', fn() => view('office.requests.show'))->name('requests.show');
+    Route::get('/services',      fn() => view('office.services.index'))->name('services.index');
+    Route::get('/appointments',  fn() => view('office.appointments.index'))->name('appointments.index');
+    Route::get('/slots',         fn() => view('office.slots.index'))->name('slots.index');
+    Route::get('/feedback',      fn() => view('office.feedback.index'))->name('feedback.index');
+    Route::get('/profile',       fn() => view('office.profile'))->name('profile');
+});
 
 /*
 |--------------------------------------------------------------------------

@@ -4,30 +4,24 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\Auth;
 
 class RoleMiddleware
 {
-   public function handle($request, Closure $next, $role)
-{
-   $user = auth()->user();
+    public function handle(Request $request, Closure $next, string $role)
+    {
+        $user = Auth::user();
 
-   if (!$user) {
-       return response()->json(['message' => 'Unauthorized'], 401);
-   }
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
 
-   // 🔥 IMPORTANT FIX
-   if (!$user->role_id) {
-       return response()->json(['message' => 'Unauthorized. No role assigned.'], 403);
-   }
+        $userRole = $user->role?->name;
 
-   // Check role by ID instead of relation
-   if ($user->role_id != 1) { // 1 = admin
-       return response()->json(['message' => 'Forbidden. Admins only.'], 403);
-   }
+        if ($userRole !== $role) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
 
-   return $next($request);
+        return $next($request);
+    }
 }
-
-}
-

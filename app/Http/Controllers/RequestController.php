@@ -12,14 +12,17 @@ class RequestController extends Controller
 {
     public function index(HttpRequest $httpRequest)
     {
-        $user = Auth::user();
+        $user  = Auth::user();
+        $role  = $user->role?->name;
         $query = ServiceRequest::with([
             'user:id,name,email',
             'service:id,name',
             'office:id,name',
         ])->latest();
 
-        if ($user->role?->name !== 'admin') {
+        if ($role === 'office') {
+            $query->where('office_id', $user->office_id);
+        } elseif ($role !== 'admin') {
             $query->where('user_id', $user->id);
         }
 
@@ -32,14 +35,14 @@ class RequestController extends Controller
         }
 
         $requests = $query->get()->map(fn($req) => [
-            'id'             => $req->id,
-            'citizen_name'   => $req->user->name ?? null,
-            'citizen_email'  => $req->user->email ?? null,
-            'service_name'   => $req->service->name ?? null,
-            'office_name'    => $req->office->name ?? null,
-            'status'         => $req->status,
-            'notes'          => $req->notes,
-            'created_at'     => $req->created_at,
+            'id'            => $req->id,
+            'citizen_name'  => $req->user->name  ?? null,
+            'citizen_email' => $req->user->email ?? null,
+            'service_name'  => $req->service->name ?? null,
+            'office_name'   => $req->office->name  ?? null,
+            'status'        => $req->status,
+            'notes'         => $req->notes,
+            'created_at'    => $req->created_at,
         ]);
 
         return response()->json(['success' => true, 'data' => $requests]);
@@ -69,6 +72,7 @@ class RequestController extends Controller
             'statusHistories',
             'payments',
             'messages',
+            'requestDocuments',
         ])->findOrFail($id);
 
         return response()->json(['success' => true, 'data' => $request]);
@@ -77,13 +81,21 @@ class RequestController extends Controller
     public function updateStatus(HttpRequest $request, int $id)
     {
         $data = $request->validate([
-            'status'  => 'required|in:pending,processing,approved,rejected,completed',
+            'status'  => 'required|in:pending,processing,approved,rejected,completed,missing_documents',
             'comment' => 'nullable|string|max:1000',
         ]);
 
+        $user           = Auth::user();
+        $role           = $user->role?->name;
         $serviceRequest = ServiceRequest::findOrFail($id);
-        $oldStatus      = $serviceRequest->status;
-        $newStatus      = $data['status'];
+
+        // Office users may only update their own office's requests
+        if ($role === 'office' && $serviceRequest->office_id !== $user->office_id) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $oldStatus = $serviceRequest->status;
+        $newStatus = $data['status'];
 
         if ($oldStatus === $newStatus) {
             return response()->json(['success' => false, 'message' => 'Request already has this status.', 'data' => $serviceRequest]);

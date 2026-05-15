@@ -88,7 +88,8 @@ let allOffices = [], selectedSlot = null;
 
 async function loadOffices() {
     const res = await fetch('/api/offices', { headers: { Accept: 'application/json' } });
-    allOffices = await res.json();
+    const data = await res.json();
+    allOffices = Array.isArray(data) ? data : (data.data ?? []);
     const sel = document.getElementById('appt-office');
     allOffices.forEach(o => sel.insertAdjacentHTML('beforeend', `<option value="${o.id}">${o.name}</option>`));
 

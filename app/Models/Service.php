@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Request as ServiceRequest;
 
 class Service extends Model
 {
@@ -12,7 +13,8 @@ class Service extends Model
         'service_type_id',
         'office_id',
         'fee',
-        'estimated_time'
+        'estimated_time',
+        'description',
     ];
 
     public function category()
