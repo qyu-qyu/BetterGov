@@ -79,6 +79,12 @@
                         <option value="">Select a role…</option>
                     </select>
                 </div>
+                <div class="mb-3 d-none" id="office-type-wrap">
+                    <label class="form-label fw-semibold">Office Type</label>
+                    <select id="f-office-type" class="form-select" onchange="filterOfficesByType()">
+                        <option value="">Select an office type…</option>
+                    </select>
+                </div>
                 <div class="mb-3" id="office-field" style="display:none">
                     <label class="form-label fw-semibold">Assigned Office</label>
                     <select id="f-office" class="form-select">
@@ -130,19 +136,52 @@ async function loadAll() {
 }
 
 function populateRoleDropdowns() {
-    const opts = allRoles.map(r => `<option value="${r.id}" data-name="${r.name}">${r.name}</option>`).join('');
+    const roleLabels = {
+        admin: 'Admin',
+        office: 'Office',
+        citizen: 'User',
+    };
+    const opts = allRoles.map(r => `<option value="${r.id}" data-name="${r.name}">${roleLabels[r.name] ?? r.name}</option>`).join('');
     document.getElementById('f-role').innerHTML = '<option value="">Select a role…</option>' + opts;
     document.getElementById('filter-role').innerHTML =
-        '<option value="">All roles</option>' + allRoles.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
+        '<option value="">All roles</option>' + allRoles.map(r => `<option value="${r.name}">${roleLabels[r.name] ?? r.name}</option>`).join('');
     document.getElementById('f-office').innerHTML =
         '<option value="">None</option>' + allOffices.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+
+    const officeTypes = [
+        ['civil_registry', 'Civil Registry'],
+        ['mukhtar', 'Mukhtar'],
+        ['municipality', 'Municipality'],
+        ['public_health', 'Public Health'],
+        ['general_security', 'General Security'],
+    ];
+    document.getElementById('f-office-type').innerHTML = '<option value="">Select an office type…</option>' +
+        officeTypes.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
 }
 
 function toggleOfficeField() {
     const sel      = document.getElementById('f-role');
     const opt      = sel.options[sel.selectedIndex];
     const roleName = opt?.dataset?.name ?? '';
-    document.getElementById('office-field').style.display = roleName === 'office' ? '' : 'none';
+    const showOffice = roleName === 'office';
+    document.getElementById('office-field').style.display = showOffice ? '' : 'none';
+    document.getElementById('office-type-wrap').classList.toggle('d-none', !showOffice);
+    if (!showOffice) {
+        document.getElementById('f-office-type').value = '';
+        filterOfficesByType();
+    }
+}
+
+function filterOfficesByType() {
+    const type = document.getElementById('f-office-type').value;
+    const officeSelect = document.getElementById('f-office');
+    Array.from(officeSelect.options).forEach(opt => {
+        if (!opt.value) return;
+        const office = allOffices.find(o => String(o.id) === String(opt.value));
+        const officeType = office?.office_type ?? '';
+        opt.hidden = !!type && officeType !== type;
+    });
+    if (officeSelect.selectedOptions[0]?.hidden) officeSelect.value = '';
 }
 
 function renderTable(users) {
@@ -152,7 +191,7 @@ function renderTable(users) {
         return;
     }
     tbody.innerHTML = users.map(u => `
-        <tr data-name="${(u.name||'').toLowerCase()}" data-email="${(u.email||'').toLowerCase()}" data-role="${u.role?.name||''}" data-status="${u.is_active ? 'active':'inactive'}">
+        <tr data-name="${(u.name||'').toLowerCase()}" data-email="${(u.email||'').toLowerCase()}" data-role="${(u.role?.name||'').toLowerCase()}" data-status="${u.is_active ? 'active':'inactive'}">
             <td class="ps-3 fw-semibold">${u.name}</td>
             <td class="text-muted small">${u.email}</td>
             <td><span class="badge bg-primary bg-opacity-10 text-primary text-capitalize">${u.role?.name ?? '—'}</span></td>
@@ -179,7 +218,7 @@ function renderTable(users) {
 
 function filterTable() {
     const q      = document.getElementById('search').value.toLowerCase();
-    const role   = document.getElementById('filter-role').value;
+    const role   = document.getElementById('filter-role').value.toLowerCase();
     const status = document.getElementById('filter-status').value;
     document.querySelectorAll('#users-tbody tr[data-name]').forEach(r => {
         const ok = (!q || r.dataset.name.includes(q) || r.dataset.email.includes(q))
@@ -197,9 +236,11 @@ function openCreate() {
     document.getElementById('f-password').value = '';
     document.getElementById('f-role').value = '';
     document.getElementById('f-office').value = '';
+    document.getElementById('f-office-type').value = '';
     document.getElementById('f-active').checked = true;
     document.getElementById('pw-hint').style.display = 'none';
     document.getElementById('office-field').style.display = 'none';
+    document.getElementById('office-type-wrap').classList.add('d-none');
 }
 
 function openEdit(u) {

@@ -27,10 +27,11 @@
                         <th>Status</th>
                         <th>Notes</th>
                         <th>Booked</th>
+                        <th class="text-end pe-3">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="appt-tbody">
-                    <tr><td colspan="6" class="text-center py-4">
+                    <tr><td colspan="7" class="text-center py-4">
                         <div class="spinner-border spinner-border-sm text-primary"></div>
                     </td></tr>
                 </tbody>
@@ -72,7 +73,7 @@ function applyFilters() {
 function renderTable(appts) {
     const tbody = document.getElementById('appt-tbody');
     if (!appts.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted"><i class="bi bi-calendar-x display-6 d-block mb-2"></i>No appointments found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted"><i class="bi bi-calendar-x display-6 d-block mb-2"></i>No appointments found.</td></tr>';
         return;
     }
     tbody.innerHTML = appts.map(a => {
@@ -80,6 +81,16 @@ function renderTable(appts) {
         const slotLabel = slot ? `${slot.day_of_week} ${slot.start_time}–${slot.end_time}` : '—';
         const statusColors = { pending: 'badge-pending', confirmed: 'badge-approved', cancelled: 'badge-rejected' };
         const badge = `<span class="badge ${statusColors[a.status] ?? 'bg-secondary text-white'} px-2 py-1">${a.status}</span>`;
+        const actions = a.status === 'pending'
+            ? `<div class="d-flex gap-1 justify-content-end">
+                   <button class="btn btn-sm btn-outline-success" title="Confirm" onclick="updateApptStatus(${a.id},'confirmed')">
+                       <i class="bi bi-check-lg"></i> Confirm
+                   </button>
+                   <button class="btn btn-sm btn-outline-danger" title="Decline" onclick="updateApptStatus(${a.id},'cancelled')">
+                       <i class="bi bi-x-lg"></i> Decline
+                   </button>
+               </div>`
+            : '<span class="text-muted small">—</span>';
         return `<tr>
             <td class="ps-3">
                 <div class="fw-semibold">${a.user?.name ?? '—'}</div>
@@ -90,8 +101,22 @@ function renderTable(appts) {
             <td>${badge}</td>
             <td class="text-muted small">${a.notes ?? '—'}</td>
             <td class="text-muted small">${fmtDate(a.created_at)}</td>
+            <td class="text-end pe-3">${actions}</td>
         </tr>`;
     }).join('');
+}
+
+async function updateApptStatus(id, status) {
+    const label = status === 'confirmed' ? 'confirm' : 'decline';
+    if (!confirm(`Are you sure you want to ${label} this appointment?`)) return;
+    const res = await api('PATCH', `/appointments/${id}/status`, { status });
+    if (res && res.ok) {
+        showAlert(status === 'confirmed' ? 'Appointment confirmed.' : 'Appointment declined.');
+        loadAll();
+    } else {
+        const json = await res?.json();
+        showAlert(json?.message ?? 'Failed to update appointment.', 'danger');
+    }
 }
 
 loadAll();

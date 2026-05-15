@@ -135,8 +135,11 @@
             <i class="bi bi-file-earmark-text-fill"></i> Requests
             <span id="pending-badge" class="notif-dot d-none"></span>
         </a>
-        <a href="{{ route('office.services.index') }}" class="{{ request()->is('office/services*') ? 'active' : '' }}">
+        <a href="{{ route('office.services.index') }}" class="{{ request()->is('office/services') ? 'active' : '' }}">
             <i class="bi bi-grid-3x3-gap-fill"></i> Services
+        </a>
+        <a href="{{ route('office.services.templates') }}" class="{{ request()->is('office/services/templates*') ? 'active' : '' }}">
+            <i class="bi bi-layout-text-window-reverse"></i> Service Templates
         </a>
         <a href="{{ route('office.appointments.index') }}" class="{{ request()->is('office/appointments*') ? 'active' : '' }}">
             <i class="bi bi-calendar-check-fill"></i> Appointments
@@ -190,7 +193,17 @@
 <script>
 const API_BASE = '/api';
 
-function getToken() { return localStorage.getItem('citizen_token'); }
+function getToken() {
+    const officeToken = localStorage.getItem('office_token');
+    if (officeToken) return officeToken;
+
+    // Legacy fallback for old sessions
+    const legacy = localStorage.getItem('citizen_token');
+    if (legacy) {
+        localStorage.setItem('office_token', legacy);
+    }
+    return legacy;
+}
 
 async function api(method, path, body = null, isForm = false) {
     const token   = getToken();
@@ -200,7 +213,11 @@ async function api(method, path, body = null, isForm = false) {
     const opts = { method, headers };
     if (body) opts.body = isForm ? body : JSON.stringify(body);
     const res = await fetch(API_BASE + path, opts);
-    if (res.status === 401) { localStorage.removeItem('citizen_token'); window.location.href = '/login'; }
+    if (res.status === 401) {
+        localStorage.removeItem('office_token');
+        localStorage.removeItem('citizen_token');
+        window.location.href = '/login';
+    }
     return res;
 }
 
@@ -239,6 +256,7 @@ function fmtDateTime(d) {
 
 async function logout() {
     await api('POST', '/logout');
+    localStorage.removeItem('office_token');
     localStorage.removeItem('citizen_token');
     window.location.href = '/login';
 }
@@ -250,6 +268,11 @@ async function loadUser() {
     if (!res || !res.ok) return;
     const data = await res.json();
     const user = data.user ?? data;
+    if (user?.role !== 'office') {
+        localStorage.removeItem('office_token');
+        window.location.href = '/login';
+        return;
+    }
     if (user) {
         document.getElementById('user-name').textContent  = user.name  ?? '';
         document.getElementById('user-email').textContent = user.email ?? '';

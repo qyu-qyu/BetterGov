@@ -511,12 +511,24 @@ select:focus{
             }
 
             const token = data.token ?? (data.data ? data.data.token : undefined) ?? data.access_token;
+            const role = data.user?.role ?? '';
+
             if (token) {
-              localStorage.setItem('citizen_token', token);
+              // Reset role-scoped tokens to avoid cross-portal 403 issues.
+              localStorage.removeItem('admin_token');
+              localStorage.removeItem('office_token');
+              localStorage.removeItem('citizen_token');
+
+              if (role === 'admin') {
+                localStorage.setItem('admin_token', token);
+              } else if (role === 'office') {
+                localStorage.setItem('office_token', token);
+              } else {
+                localStorage.setItem('citizen_token', token);
+              }
             }
 
             // Redirect based on role
-            const role = data.user?.role ?? '';
             if (role === 'admin') {
               window.location.href = '/admin/dashboard';
             } else if (role === 'office') {

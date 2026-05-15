@@ -17,9 +17,14 @@
         </select>
     </div>
     <div class="col-md-3">
-        <select id="office-filter" class="form-select">
-            <option value="">All Offices</option>
-        </select>
+        <div class="input-group">
+            <select id="office-filter" class="form-select">
+                <option value="">All Offices</option>
+            </select>
+            <button class="btn btn-outline-primary" onclick="findNearestOffice()" title="Show nearest office">
+                <i class="bi bi-geo-alt-fill"></i>
+            </button>
+        </div>
     </div>
     <div class="col-md-1">
         <button class="btn btn-outline-secondary w-100" onclick="resetFilters()" title="Reset">
@@ -116,11 +121,48 @@ function applyFilters() {
 function resetFilters() {
     document.getElementById('search-input').value = '';
     document.getElementById('category-filter').value = '';
-    document.getElementById('office-filter').value = '';
     activeCategoryId = null;
     buildCategoryPills();
+    buildFilterSelects();
     renderServices(allServices);
 }
+
+function findNearestOffice() {
+    if (!navigator.geolocation) { showAlert('Geolocation is not supported by your browser.', 'warning'); return; }
+    navigator.geolocation.getCurrentPosition(pos => {
+        const { latitude, longitude } = pos.coords;
+
+        const withDist = allOffices.map(o => ({
+            ...o,
+            distance: (o.latitude && o.longitude)
+                ? haversine(latitude, longitude, parseFloat(o.latitude), parseFloat(o.longitude))
+                : Infinity,
+        })).sort((a, b) => a.distance - b.distance);
+
+        const sel = document.getElementById('office-filter');
+        sel.innerHTML = '<option value="">All Offices</option>';
+        withDist.forEach(o => {
+            const dist = isFinite(o.distance) ? ` · ${o.distance.toFixed(1)} km` : '';
+            sel.insertAdjacentHTML('beforeend', `<option value="${o.id}">${o.name}${dist}</option>`);
+        });
+
+        const nearest = withDist.find(o => isFinite(o.distance));
+        if (nearest) {
+            sel.value = nearest.id;
+            applyFilters();
+            showAlert(`Nearest office: ${nearest.name} — ${nearest.distance.toFixed(1)} km away.`);
+        } else {
+            showAlert('No offices with location data found.', 'warning');
+        }
+    }, () => showAlert('Could not get your location. Please allow location access.', 'danger'));
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+    const R = 6371, dLat = rad(lat2 - lat1), dLon = rad(lon2 - lon1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+function rad(d) { return d * Math.PI / 180; }
 
 function renderServices(services) {
     const grid  = document.getElementById('services-grid');

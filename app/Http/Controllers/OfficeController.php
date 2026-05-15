@@ -10,7 +10,7 @@ class OfficeController extends Controller
 {
     public function index(): JsonResponse
     {
-        $offices = Office::with(['municipality', 'officeType'])->get();
+        $offices = Office::with(['municipality'])->get();
 
         return response()->json(['success' => true, 'data' => $offices]);
     }
@@ -20,7 +20,8 @@ class OfficeController extends Controller
         $request->validate([
             'name'            => 'required|string|max:255',
             'municipality_id' => 'required|exists:municipalities,id',
-            'office_type_id'  => 'required|exists:office_types,id',
+            'office_type_id'  => 'nullable|exists:office_types,id',
+            'office_type'     => 'nullable|string|in:civil_registry,mukhtar,municipality,public_health,general_security',
             'address'         => 'nullable|string|max:255',
             'phone'           => 'nullable|string|max:50',
             'email'           => 'nullable|email|max:255',
@@ -30,12 +31,12 @@ class OfficeController extends Controller
         ]);
 
         $office = Office::create($request->only([
-            'name', 'municipality_id', 'office_type_id',
+            'name', 'municipality_id', 'office_type_id', 'office_type',
             'address', 'phone', 'email',
             'latitude', 'longitude', 'working_hours',
         ]));
 
-        $office->load(['municipality', 'officeType']);
+        $office->load(['municipality']);
 
         return response()->json(['success' => true, 'message' => 'Office created.', 'data' => $office], 201);
     }
@@ -54,7 +55,8 @@ class OfficeController extends Controller
         $request->validate([
             'name'            => 'sometimes|string|max:255',
             'municipality_id' => 'sometimes|exists:municipalities,id',
-            'office_type_id'  => 'sometimes|exists:office_types,id',
+            'office_type_id'  => 'nullable|exists:office_types,id',
+            'office_type'     => 'nullable|string|in:civil_registry,mukhtar,municipality,public_health,general_security',
             'address'         => 'nullable|string|max:255',
             'phone'           => 'nullable|string|max:50',
             'email'           => 'nullable|email|max:255',
@@ -64,12 +66,12 @@ class OfficeController extends Controller
         ]);
 
         $office->update($request->only([
-            'name', 'municipality_id', 'office_type_id',
+            'name', 'municipality_id', 'office_type_id', 'office_type',
             'address', 'phone', 'email',
             'latitude', 'longitude', 'working_hours',
         ]));
 
-        $office->load(['municipality', 'officeType']);
+        $office->load(['municipality']);
 
         return response()->json(['success' => true, 'message' => 'Office updated.', 'data' => $office]);
     }

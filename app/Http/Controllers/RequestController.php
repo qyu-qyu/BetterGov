@@ -72,7 +72,7 @@ class RequestController extends Controller
             'statusHistories',
             'payments',
             'messages',
-            'requestDocuments',
+            'requestDocuments.documentType',
         ])->findOrFail($id);
 
         return response()->json(['success' => true, 'data' => $request]);
@@ -119,5 +119,24 @@ class RequestController extends Controller
         ]);
 
         return response()->json(['success' => true, 'message' => 'Status updated.', 'data' => $serviceRequest]);
+    }
+
+    public function destroy(int $id)
+    {
+        $user = Auth::user();
+        $role = $user->role?->name;
+        $request = ServiceRequest::findOrFail($id);
+
+        if ($role === 'office' && $request->office_id !== $user->office_id) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        if (!in_array($role, ['admin', 'office'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $request->delete();
+
+        return response()->json(['success' => true, 'message' => 'Request deleted.']);
     }
 }

@@ -102,6 +102,11 @@ function renderTable(requests) {
             <td>${statusBadge(r.status)}</td>
             <td class="text-muted small">${fmtDate(r.created_at)}</td>
             <td class="text-end pe-3">
+                ${r.status === 'completed' ? `
+                <a href="/citizen/requests/${r.id}#office-docs-card"
+                   class="btn btn-sm btn-success me-1" title="Download Documents">
+                    <i class="bi bi-download"></i>
+                </a>` : ''}
                 <a href="/citizen/requests/${r.id}" class="btn btn-sm btn-outline-primary">
                     <i class="bi bi-eye me-1"></i>View
                 </a>

@@ -32,7 +32,8 @@ Route::prefix('office')->name('office.')->group(function () {
     Route::get('/dashboard',     fn() => view('office.dashboard'))->name('dashboard');
     Route::get('/requests',      fn() => view('office.requests.index'))->name('requests.index');
     Route::get('/requests/{id}', fn() => view('office.requests.show'))->name('requests.show');
-    Route::get('/services',      fn() => view('office.services.index'))->name('services.index');
+    Route::get('/services',           fn() => view('office.services.index'))->name('services.index');
+    Route::get('/services/templates', fn() => view('office.services.templates'))->name('services.templates');
     Route::get('/appointments',  fn() => view('office.appointments.index'))->name('appointments.index');
     Route::get('/slots',         fn() => view('office.slots.index'))->name('slots.index');
     Route::get('/feedback',      fn() => view('office.feedback.index'))->name('feedback.index');

@@ -32,8 +32,32 @@ class ResponseDocumentController extends Controller
 
     public function getByRequest(string $requestId)
     {
-        $documents = ResponseDocument::where('request_id', $requestId)->get();
+        $documents = ResponseDocument::query()->where('request_id', '=', $requestId, 'and')->get();
 
         return response()->json(['success' => true, 'data' => $documents], 200);
+    }
+
+    public function download(int $id)
+    {
+        $doc = ResponseDocument::with('request')->findOrFail($id);
+        $user = Auth::user();
+        $role = $user->role?->name;
+
+        if ($role !== 'admin') {
+            if ($role === 'office') {
+                if ($doc->request?->office_id !== $user->office_id) {
+                    return response()->json(['message' => 'Forbidden.'], 403);
+                }
+            } elseif ($doc->request?->user_id !== $user->id) {
+                return response()->json(['message' => 'Forbidden.'], 403);
+            }
+        }
+
+        $fullPath = storage_path('app/public/' . $doc->file_path);
+        if (!file_exists($fullPath)) {
+            return response()->json(['message' => 'File not found.'], 404);
+        }
+
+        return response()->download($fullPath, $doc->file_name ?? basename($doc->file_path));
     }
 }

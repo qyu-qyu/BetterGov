@@ -9,8 +9,10 @@ use App\Http\Controllers\RequestController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\ServiceTypeController;
 use App\Http\Controllers\ServiceCategoryController;
 use App\Http\Controllers\DocumentTypeController;
+use App\Http\Controllers\ServiceTemplateController;
 use App\Http\Controllers\ResponseDocumentController;
 use App\Http\Controllers\RequestDocumentController;
 use App\Http\Controllers\OfficeTimeSlotController;
@@ -30,8 +32,10 @@ Route::get('/offices/{id}',                               [OfficeController::cla
 Route::get('/municipalities',                             [MunicipalityController::class,    'index']);
 Route::get('/services',                                   [ServiceController::class,         'index']);
 Route::get('/services/{id}',                              [ServiceController::class,         'show']);
+Route::get('/service-types',                              [ServiceTypeController::class,     'index']);
 Route::get('/service-categories',                         [ServiceCategoryController::class, 'index']);
 Route::get('/document-types',                             [DocumentTypeController::class,    'index']);
+Route::get('/service-templates/{id}',                     [ServiceTemplateController::class, 'show']);
 Route::get('/services/{serviceId}/required-documents',    [ServiceController::class,         'getRequiredDocuments']);
 
 // ─── Protected (any authenticated user) ───────────────────────────────────────
@@ -40,6 +44,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me',      [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
+    // Service templates (filtered by office type for office users; all for admin)
+    Route::get('/service-templates', [ServiceTemplateController::class, 'index']);
+
+    // Services (write) - role checks are handled in ServiceController
+    Route::post('/services',        [ServiceController::class, 'store']);
+    Route::put('/services/{id}',    [ServiceController::class, 'update']);
+    Route::delete('/services/{id}', [ServiceController::class, 'destroy']);
+
     // Requests
     Route::get('/requests',                          [RequestController::class,          'index']);
     Route::post('/requests',                         [RequestController::class,          'store']);
@@ -47,6 +59,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/requests/{id}/response-documents',  [ResponseDocumentController::class, 'getByRequest']);
     Route::get('/requests/{id}/documents',           [RequestDocumentController::class,  'getByRequest']);
     Route::get('/requests/{id}/messages',            [MessageController::class,          'byRequest']);
+    Route::get('/request-documents/{id}/download',   [RequestDocumentController::class,  'download']);
+    Route::get('/response-documents/{id}/download',  [ResponseDocumentController::class, 'download']);
+    Route::delete('/requests/{id}',                   [RequestController::class,          'destroy']);
 
     // Status update (admin + office role; controller enforces per-office scope)
     Route::put('/requests/{id}/status', [RequestController::class, 'updateStatus']);
@@ -91,15 +106,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/office-portal/profile',       [OfficePortalController::class,    'profile']);
         Route::put('/office-portal/profile',       [OfficePortalController::class,    'updateProfile']);
         Route::get('/office-portal/notifications', [OfficePortalController::class,    'notifications']);
-
-        // Services (office manages their own)
-        Route::post('/services',                                                    [ServiceController::class, 'store']);
-        Route::put('/services/{id}',                                                [ServiceController::class, 'update']);
-        Route::delete('/services/{id}',                                             [ServiceController::class, 'destroy']);
         Route::post('/services/{serviceId}/required-documents',                     [ServiceController::class, 'attachRequiredDocument']);
         Route::delete('/services/{serviceId}/required-documents/{documentTypeId}',  [ServiceController::class, 'removeRequiredDocument']);
+    });
 
-        // Service categories (office can create)
+    // ─── Office + Admin shared ────────────────────────────────────────────────
+    Route::middleware('role:office,admin')->group(function () {
+        // Appointment status management (confirm / decline)
+        Route::patch('/appointments/{id}/status', [AppointmentController::class, 'updateStatus']);
+
+        // Service categories
         Route::post('/service-categories',        [ServiceCategoryController::class, 'store']);
         Route::put('/service-categories/{id}',    [ServiceCategoryController::class, 'update']);
         Route::delete('/service-categories/{id}', [ServiceCategoryController::class, 'destroy']);
@@ -112,22 +128,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ─── Admin only ───────────────────────────────────────────────────────────
     Route::middleware('role:admin')->group(function () {
-
-        // Services (admin can also manage)
-        Route::post('/services',                                                    [ServiceController::class, 'store']);
-        Route::put('/services/{id}',                                                [ServiceController::class, 'update']);
-        Route::delete('/services/{id}',                                             [ServiceController::class, 'destroy']);
-
-        // Service categories
-        Route::post('/service-categories',        [ServiceCategoryController::class, 'store']);
-        Route::put('/service-categories/{id}',    [ServiceCategoryController::class, 'update']);
-        Route::delete('/service-categories/{id}', [ServiceCategoryController::class, 'destroy']);
-
-        // Time slot management
-        Route::post('/appointment-slots',                      [OfficeTimeSlotController::class, 'store']);
-        Route::put('/appointment-slots/{id}',                  [OfficeTimeSlotController::class, 'update']);
-        Route::patch('/appointment-slots/{id}/toggle-active',  [OfficeTimeSlotController::class, 'toggleActive']);
-
         // Dashboard & analytics
         Route::get('/office/dashboard',                         [OfficeDashboardController::class, 'dashboard']);
         Route::get('/office/dashboard/request-status-summary',  [OfficeDashboardController::class, 'requestStatusSummary']);

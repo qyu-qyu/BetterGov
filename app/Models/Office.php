@@ -12,6 +12,7 @@ class Office extends Model
        'name',
        'municipality_id',
        'office_type_id',
+       'office_type',
        'address',
        'phone',
        'email',

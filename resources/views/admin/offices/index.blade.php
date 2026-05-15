@@ -120,7 +120,15 @@
 
 @push('scripts')
 <script>
-let allOffices = [], allMunis = [], allTypes = [], deleteId = null;
+let allOffices = [], allMunis = [], deleteId = null;
+
+const OFFICE_TYPE_OPTIONS = [
+    { value: 'civil_registry',   label: 'Civil Registry' },
+    { value: 'mukhtar',          label: 'Mukhtar' },
+    { value: 'municipality',     label: 'Municipality' },
+    { value: 'public_health',    label: 'Public Health' },
+    { value: 'general_security', label: 'General Security' },
+];
 
 async function loadAll() {
     const [oRes, mRes] = await Promise.all([api('GET', '/offices'), api('GET', '/municipalities')]);
@@ -132,8 +140,11 @@ async function loadAll() {
 
 function populateDropdowns() {
     const muniOpts = allMunis.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-    document.getElementById('f-muni').innerHTML    = '<option value="">Select…</option>' + muniOpts;
+    document.getElementById('f-muni').innerHTML      = '<option value="">Select…</option>' + muniOpts;
     document.getElementById('filter-muni').innerHTML = '<option value="">All municipalities</option>' + muniOpts;
+
+    document.getElementById('f-type').innerHTML = '<option value="">Select…</option>' +
+        OFFICE_TYPE_OPTIONS.map(t => `<option value="${t.value}">${t.label}</option>`).join('');
 }
 
 function renderTable(offices) {
@@ -142,11 +153,13 @@ function renderTable(offices) {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted"><i class="bi bi-building display-6 d-block mb-2"></i>No offices found.</td></tr>';
         return;
     }
-    tbody.innerHTML = offices.map(o => `
+    tbody.innerHTML = offices.map(o => {
+        const typeLabel = OFFICE_TYPE_OPTIONS.find(t => t.value === o.office_type)?.label ?? '—';
+        return `
         <tr data-name="${(o.name||'').toLowerCase()}" data-muni="${o.municipality_id}">
             <td class="ps-3 fw-semibold">${o.name}</td>
             <td class="small">${o.municipality?.name ?? '—'}</td>
-            <td><span class="badge bg-secondary bg-opacity-10 text-secondary">${o.office_type?.name ?? o.officeType?.name ?? '—'}</span></td>
+            <td><span class="badge bg-secondary bg-opacity-10 text-secondary">${typeLabel}</span></td>
             <td class="text-muted small">${o.address ?? '—'}</td>
             <td class="text-muted small">${o.phone ?? '—'}</td>
             <td class="text-muted small">${o.email ?? '—'}</td>
@@ -154,7 +167,8 @@ function renderTable(offices) {
                 <button class="btn btn-sm btn-outline-secondary me-1" onclick='openEdit(${JSON.stringify(o)})'><i class="bi bi-pencil"></i></button>
                 <button class="btn btn-sm btn-outline-danger" onclick="openDelete(${o.id},'${(o.name||'').replace(/'/g,"\\'")}')"><i class="bi bi-trash"></i></button>
             </td>
-        </tr>`).join('');
+        </tr>`;
+    }).join('');
 }
 
 function filterTable() {
@@ -181,6 +195,7 @@ function openEdit(o) {
     document.getElementById('edit-id').value   = o.id;
     document.getElementById('f-name').value    = o.name ?? '';
     document.getElementById('f-muni').value    = o.municipality_id ?? '';
+    document.getElementById('f-type').value    = o.office_type ?? '';
     document.getElementById('f-address').value = o.address ?? '';
     document.getElementById('f-phone').value   = o.phone ?? '';
     document.getElementById('f-email').value   = o.email ?? '';
@@ -203,7 +218,7 @@ async function saveOffice() {
         working_hours:   document.getElementById('f-hours').value.trim() || null,
     };
     const typeEl = document.getElementById('f-type');
-    if (typeEl && typeEl.value) payload.office_type_id = typeEl.value;
+    payload.office_type = typeEl.value || null;
 
     const res  = id ? await api('PUT', `/offices/${id}`, payload) : await api('POST', '/offices', payload);
     const json = await res.json();

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 
 class RoleMiddleware
 {
-    public function handle(Request $request, Closure $next, string $role)
+    public function handle(Request $request, Closure $next, string ...$roles)
     {
         $user = Auth::user();
 
@@ -18,7 +18,7 @@ class RoleMiddleware
 
         $userRole = $user->role?->name;
 
-        if ($userRole !== $role) {
+        if (!in_array($userRole, $roles)) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 

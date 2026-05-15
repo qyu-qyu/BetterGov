@@ -107,9 +107,14 @@
 
         <!-- Citizen documents -->
         <div class="card mb-3">
-            <div class="card-header"><i class="bi bi-folder2 me-2 text-warning"></i>Submitted Documents</div>
-            <div class="card-body" id="citizen-docs">
-                <p class="text-muted small mb-0">—</p>
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span><i class="bi bi-folder2 me-2 text-warning"></i>Submitted Documents</span>
+                <span id="citizen-docs-count" class="badge bg-secondary bg-opacity-10 text-secondary"></span>
+            </div>
+            <div class="card-body p-0" id="citizen-docs">
+                <div class="text-center py-4">
+                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                </div>
             </div>
         </div>
 
@@ -163,6 +168,32 @@
     </div>
 </div>
 
+<!-- Document preview modal -->
+<div class="modal fade" id="docPreviewModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title fw-semibold" id="doc-preview-title"></h6>
+                <div class="ms-auto d-flex gap-2 align-items-center">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="downloadCurrentPreview()">
+                        <i class="bi bi-download me-1"></i>Download
+                    </button>
+                    <button type="button" class="btn-close ms-1" data-bs-dismiss="modal"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0" style="min-height:500px">
+                <div id="doc-preview-loading" class="d-flex align-items-center justify-content-center py-5">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+                <iframe id="doc-preview-frame" class="d-none w-100" style="height:72vh;border:none"></iframe>
+                <div id="doc-preview-img-wrap" class="d-none text-center p-3">
+                    <img id="doc-preview-img" class="img-fluid" style="max-height:72vh">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Print template (hidden) -->
 <div id="print-area" style="display:none">
     <div style="font-family:sans-serif;max-width:700px;margin:0 auto;padding:24px">
@@ -194,10 +225,12 @@ const reqId = window.location.pathname.split('/').pop();
 let currentUserId = null, reqData = null;
 
 async function loadRequest() {
-    const meRes = await api('GET', '/me');
+    const [meRes, res] = await Promise.all([
+        api('GET', '/me'),
+        api('GET', `/requests/${reqId}`),
+    ]);
     if (meRes && meRes.ok) { const d = await meRes.json(); currentUserId = d.user?.id; }
 
-    const res = await api('GET', `/requests/${reqId}`);
     if (!res || !res.ok) { showAlert('Request not found.', 'danger'); return; }
     const { data: r } = await res.json();
     reqData = r;
@@ -232,25 +265,93 @@ async function loadRequest() {
             </tr>`).join('');
     }
 
-    // Citizen submitted docs
-    const cDocs = document.getElementById('citizen-docs');
-    if (r.request_documents?.length) {
-        cDocs.innerHTML = r.request_documents.map(d => `
-            <div class="d-flex align-items-center gap-2 py-1 border-bottom">
-                <i class="bi bi-file-earmark text-primary"></i>
-                <span class="small">${d.file_name ?? d.file_path?.split('/').pop() ?? 'Document'}</span>
-            </div>`).join('');
-    } else {
-        cDocs.innerHTML = '<p class="text-muted small mb-0">No documents submitted.</p>';
-    }
-
     // QR code
     QRCode.toCanvas(document.createElement('canvas'), window.location.href, { width: 120 }, (err, canvas) => {
         if (!err) document.getElementById('qr-container').appendChild(canvas);
     });
 
+    renderCitizenDocs(r.request_documents ?? []);
     loadResponseDocs();
     loadMessages();
+}
+
+function renderCitizenDocs(docs) {
+    const container  = document.getElementById('citizen-docs');
+    const countBadge = document.getElementById('citizen-docs-count');
+
+    if (!docs.length) {
+        container.innerHTML = '<p class="text-muted small p-3 mb-0">No documents submitted yet.</p>';
+        countBadge.textContent = '0';
+        return;
+    }
+
+    countBadge.textContent = docs.length;
+
+    const iconFor = name => {
+        const ext = (name ?? '').split('.').pop().toLowerCase();
+        if (ext === 'pdf')                                    return 'bi-file-earmark-pdf text-danger';
+        if (['jpg','jpeg','png','gif','webp'].includes(ext)) return 'bi-file-earmark-image text-success';
+        return 'bi-file-earmark text-primary';
+    };
+
+    container.innerHTML = `
+        <ul class="list-group list-group-flush">
+            ${docs.map(d => {
+                const name = d.file_name ?? 'Document';
+                const safeName = name.replace(/'/g, "\\'");
+                return `
+                <li class="list-group-item d-flex align-items-center gap-3 py-2 px-3"
+                    style="cursor:pointer" onclick="previewDoc(${d.id}, '${safeName}')"
+                    title="Click to view">
+                    <i class="bi ${iconFor(name)} fs-5 flex-shrink-0"></i>
+                    <div class="flex-fill overflow-hidden">
+                        <div class="fw-semibold small text-truncate">${name}</div>
+                        ${d.document_type ? `<div class="text-muted" style="font-size:.75rem">${d.document_type.name}</div>` : ''}
+                        <div class="text-muted" style="font-size:.72rem">${fmtDateTime(d.created_at)}</div>
+                    </div>
+                    <i class="bi bi-eye text-muted flex-shrink-0"></i>
+                </li>`;
+            }).join('')}
+        </ul>`;
+}
+
+let _previewBlobUrl = null, _previewFileName = null;
+
+async function previewDoc(id, fileName) {
+    _previewFileName = fileName;
+    document.getElementById('doc-preview-title').textContent = fileName;
+    document.getElementById('doc-preview-frame').classList.add('d-none');
+    document.getElementById('doc-preview-img-wrap').classList.add('d-none');
+    document.getElementById('doc-preview-loading').classList.remove('d-none');
+
+    const modal = new bootstrap.Modal(document.getElementById('docPreviewModal'));
+    modal.show();
+
+    const res = await api('GET', `/request-documents/${id}/download`);
+    if (!res || !res.ok) { showAlert('Could not load document.', 'danger'); return; }
+
+    const blob = await res.blob();
+    if (_previewBlobUrl) URL.revokeObjectURL(_previewBlobUrl);
+    _previewBlobUrl = URL.createObjectURL(blob);
+
+    document.getElementById('doc-preview-loading').classList.add('d-none');
+
+    const ext = fileName.split('.').pop().toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+        document.getElementById('doc-preview-img').src = _previewBlobUrl;
+        document.getElementById('doc-preview-img-wrap').classList.remove('d-none');
+    } else {
+        document.getElementById('doc-preview-frame').src = _previewBlobUrl;
+        document.getElementById('doc-preview-frame').classList.remove('d-none');
+    }
+}
+
+function downloadCurrentPreview() {
+    if (!_previewBlobUrl || !_previewFileName) return;
+    const a = document.createElement('a');
+    a.href = _previewBlobUrl;
+    a.download = _previewFileName;
+    a.click();
 }
 
 async function loadResponseDocs() {

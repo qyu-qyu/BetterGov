@@ -93,4 +93,30 @@ class AppointmentController extends Controller
             'message' => 'Appointment cancelled.',
         ]);
     }
+
+    public function updateStatus(Request $request, string $id)
+    {
+        $data = $request->validate([
+            'status' => 'required|in:confirmed,cancelled',
+        ]);
+
+        $appointment = Appointment::findOrFail($id);
+        $user = Auth::user();
+
+        if ($user->role?->name === 'office' && $appointment->office_id !== $user->office_id) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        if ($appointment->status !== 'pending') {
+            return response()->json(['message' => 'Only pending appointments can be updated.'], 422);
+        }
+
+        $appointment->update(['status' => $data['status']]);
+
+        return response()->json([
+            'success' => true,
+            'message' => $data['status'] === 'confirmed' ? 'Appointment confirmed.' : 'Appointment declined.',
+            'data'    => $appointment,
+        ]);
+    }
 }
