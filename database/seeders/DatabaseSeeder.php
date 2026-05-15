@@ -10,12 +10,12 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Seed roles and capture results directly
+        // Seed roles
         $adminRole   = Role::firstOrCreate(['name' => 'admin']);
         $officeRole  = Role::firstOrCreate(['name' => 'office']);
         $citizenRole = Role::firstOrCreate(['name' => 'citizen']);
 
-        // Seed demo users — password is plain text; the User model's 'hashed' cast handles bcrypt
+        // Seed users
         User::firstOrCreate(
             ['email' => 'admin@bettergov.lb'],
             [
@@ -42,5 +42,8 @@ class DatabaseSeeder extends Seeder
                 'role_id'  => $citizenRole->id,
             ]
         );
+
+        // Run test data seeder
+        $this->call(TestDataSeeder::class);
     }
 }
