@@ -265,14 +265,16 @@ async function loadRequest() {
             </tr>`).join('');
     }
 
-    // QR code
-    QRCode.toCanvas(document.createElement('canvas'), window.location.href, { width: 120 }, (err, canvas) => {
-        if (!err) document.getElementById('qr-container').appendChild(canvas);
-    });
-
     renderCitizenDocs(r.request_documents ?? []);
     loadResponseDocs();
     loadMessages();
+
+    // QR code — last, so a CDN failure never blocks the rest
+    if (typeof QRCode !== 'undefined') {
+        QRCode.toCanvas(document.createElement('canvas'), window.location.href, { width: 120 }, (err, canvas) => {
+            if (!err) document.getElementById('qr-container').appendChild(canvas);
+        });
+    }
 }
 
 function renderCitizenDocs(docs) {
