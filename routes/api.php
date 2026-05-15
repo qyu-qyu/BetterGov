@@ -23,6 +23,9 @@ use App\Http\Controllers\OfficePortalController;
 // ─── Public ───────────────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login',    [AuthController::class, 'login']);
+
+// Payment webhook (must be public, verified by signature)
+Route::post('/webhooks/stripe',   [PaymentController::class, 'stripeWebhook']);
 Route::get('/roles',     [AuthController::class, 'roles']);
 
 Route::get('/offices',                                    [OfficeController::class,          'index']);
@@ -72,9 +75,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/notifications/{id}/read',  [NotificationController::class, 'markRead']);
 
     // Payments
-    Route::get('/payments',       [PaymentController::class, 'index']);
-    Route::post('/payments',      [PaymentController::class, 'store']);
-    Route::get('/payments/{id}',  [PaymentController::class, 'show']);
+    Route::get('/payments',                              [PaymentController::class, 'index']);
+    Route::post('/payments',                             [PaymentController::class, 'store']);
+    Route::get('/payments/{id}',                         [PaymentController::class, 'show']);
+    Route::post('/payments/stripe/intent',               [PaymentController::class, 'stripeIntent']);
+    Route::post('/payments/stripe/confirm',              [PaymentController::class, 'stripeConfirm']);
 
     // Appointments (citizen + office view)
     Route::get('/appointments',                [AppointmentController::class, 'index']);
