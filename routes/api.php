@@ -13,6 +13,7 @@ use App\Http\Controllers\ServiceTypeController;
 use App\Http\Controllers\ServiceCategoryController;
 use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\ServiceTemplateController;
+use App\Http\Controllers\QrTrackingController;
 use App\Http\Controllers\ResponseDocumentController;
 use App\Http\Controllers\RequestDocumentController;
 use App\Http\Controllers\OfficeTimeSlotController;
@@ -29,6 +30,9 @@ Route::post('/login',    [AuthController::class, 'login']);
 
 // Payment webhook (must be public, verified by signature)
 Route::post('/webhooks/stripe',   [PaymentController::class, 'stripeWebhook']);
+
+// Public QR tracking API (no auth required)
+Route::get('/track/{token}/status', [QrTrackingController::class, 'status']);
 Route::get('/roles',     [AuthController::class, 'roles']);
 
 // SSE stream (auth via token in query string or header)
@@ -71,6 +75,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/requests/{id}',                   [RequestController::class,          'destroy']);
 
     // Status update (admin + office role; controller enforces per-office scope)
+    Route::get('/requests/{id}/qr-image',                [QrTrackingController::class,       'qrImage']);
+    Route::post('/requests/{id}/generate-qr',            [RequestController::class,          'generateQr']);
     Route::put('/requests/{id}/status', [RequestController::class, 'updateStatus']);
 
     // Documents

@@ -58,6 +58,10 @@ class RequestController extends Controller
         $data['user_id'] = Auth::id();
         $req = ServiceRequest::create($data);
 
+        // ── Generate QR tracking token ───────────────────────────────────────
+        $req->generateQrToken();
+        $req->refresh(); // get the token back
+
         // ── Notify office staff of new incoming request ─────────────────────
         $serviceName = $req->service?->name ?? "Service #{$req->service_id}";
         NotificationService::notifyOfficeStaff(
@@ -68,6 +72,23 @@ class RequestController extends Controller
         );
 
         return response()->json(['success' => true, 'message' => 'Request created.', 'data' => $req], 201);
+    }
+
+    public function generateQr(int $id)
+    {
+        $request = ServiceRequest::where('id', $id)
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
+
+        if (!$request->qr_token) {
+            $request->generateQrToken();
+        }
+
+        return response()->json([
+            'success'      => true,
+            'qr_token'     => $request->qr_token,
+            'tracking_url' => $request->trackingUrl(),
+        ]);
     }
 
     public function show(int $id)
@@ -82,7 +103,11 @@ class RequestController extends Controller
             'requestDocuments.documentType',
         ])->findOrFail($id);
 
-        return response()->json(['success' => true, 'data' => $request]);
+        $data             = $request->toArray();
+        $data['qr_token']    = $request->qr_token;
+        $data['tracking_url'] = $request->qr_token ? $request->trackingUrl() : null;
+
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
     public function updateStatus(HttpRequest $request, int $id)

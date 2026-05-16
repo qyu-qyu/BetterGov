@@ -113,6 +113,31 @@
                 </div>
             </div>
 
+            {{-- QR Code card --}}
+            <div class="card mb-4" id="qr-card" style="display:none">
+                <div class="card-header py-3 d-flex align-items-center justify-content-between">
+                    <span><i class="bi bi-qr-code me-2 text-primary"></i>QR Tracking Code</span>
+                    <a id="qr-download-btn" href="#" download class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-download me-1"></i>Download
+                    </a>
+                </div>
+                <div class="card-body text-center py-3">
+                    <div style="display:inline-block;padding:12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:.75rem;">
+                        <img id="qr-img" src="" width="160" height="160" alt="QR Code">
+                    </div>
+                    <p class="text-muted small mb-1">Scan to track this request</p>
+                    <p class="text-muted" style="font-size:.72rem;word-break:break-all" id="qr-url"></p>
+                </div>
+            </div>
+            <!-- qr code card testing
+            {{-- Temporary debug card — remove after confirming QR works --}}
+            <div class="card mb-4 border-warning">
+                <div class="card-body py-2">
+                    <p class="small fw-semibold mb-1">QR Debug</p>
+                    <p class="small text-muted mb-0" id="qr-debug">Waiting...</p>
+                </div>
+            </div> -->
+
             {{-- Status timeline --}}
             <div class="card mb-4">
                 <div class="card-header py-3">
@@ -374,6 +399,28 @@ async function loadAll() {
 
     // Messages
     loadMessages();
+
+    // QR Code — generate token on the fly if missing (existing requests)
+    const qrDebug = document.getElementById('qr-debug');
+    if (req.tracking_url) {
+        if (qrDebug) qrDebug.textContent = 'tracking_url found: ' + req.tracking_url;
+        renderQrCode(req.tracking_url);
+    } else if (req.qr_token) {
+        const url = window.location.origin + '/track/' + req.qr_token;
+        if (qrDebug) qrDebug.textContent = 'built from qr_token: ' + url;
+        renderQrCode(url);
+    } else {
+        if (qrDebug) qrDebug.textContent = 'No token — calling generate-qr...';
+        api('POST', `/requests/${requestId}/generate-qr`).then(async (r) => {
+            if (r?.ok) {
+                const d = await r.json();
+                if (qrDebug) qrDebug.textContent = 'generated: ' + JSON.stringify(d);
+                if (d.tracking_url) renderQrCode(d.tracking_url);
+            } else {
+                if (qrDebug) qrDebug.textContent = 'generate-qr failed: ' + r?.status;
+            }
+        });
+    }
 
     if (new URLSearchParams(window.location.search).get('payment') === 'success') {
         showAlert('Payment processed! Status will update shortly.', 'success');
@@ -644,6 +691,44 @@ async function sendMessage() {
 }
 
 setInterval(loadMessages, 15000);
+
+// ── QR Code ───────────────────────────────────────────────────────────────────
+
+function renderQrCode(trackingUrl) {
+    const qrDebug = document.getElementById('qr-debug');
+    const card    = document.getElementById('qr-card');
+    const urlEl   = document.getElementById('qr-url');
+    const dlBtn   = document.getElementById('qr-download-btn');
+    const img     = document.getElementById('qr-img');
+
+    if (!img) { if (qrDebug) qrDebug.textContent = 'ERROR: img element not found'; return; }
+    if (qrDebug) qrDebug.textContent = 'Fetching QR from server...';
+
+    const token = getToken();
+    fetch(`/api/requests/${requestId}/qr-image`, {
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Accept': 'image/svg+xml',
+        }
+    })
+    .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.blob();
+    })
+    .then(function(blob) {
+        const objectUrl    = URL.createObjectURL(blob);
+        img.src            = objectUrl;
+        dlBtn.href         = objectUrl;
+        dlBtn.download     = 'request-qr-' + requestId + '.svg';
+        card.style.display = 'block';
+        urlEl.textContent  = trackingUrl;
+        if (qrDebug) qrDebug.textContent = 'QR rendered successfully!';
+    })
+    .catch(function(err) {
+        if (qrDebug) qrDebug.textContent = 'QR fetch error: ' + err.message;
+    });
+}
+
 loadAll();
 </script>
 @endpush

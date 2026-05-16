@@ -135,7 +135,7 @@
             </div>
         </div>
 
-        <!-- QR code -->
+        <!-- QR code 
         <div class="card">
             <div class="card-header"><i class="bi bi-qr-code me-2 text-dark"></i>QR Code — Citizen Tracking</div>
             <div class="card-body d-flex align-items-center gap-4">
@@ -145,6 +145,7 @@
                 </div>
             </div>
         </div>
+        -->
     </div>
 
     <!-- Right column: chat -->

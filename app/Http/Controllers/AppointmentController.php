@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendAppointmentReminder;
 use App\Models\Appointment;
 use App\Models\OfficeTimeSlot;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -12,9 +14,8 @@ class AppointmentController extends Controller
 {
     public function index()
     {
-        $user = Auth::user();
-        $role = $user->role?->name;
-
+        $user  = Auth::user();
+        $role  = $user->role?->name;
         $query = Appointment::with(['office', 'timeSlot', 'user:id,name,email'])->latest();
 
         if ($role === 'office') {
@@ -29,10 +30,10 @@ class AppointmentController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'office_id'           => 'required|exists:offices,id',
-            'office_time_slot_id' => 'required|exists:office_time_slots,id',
+            'office_id'             => 'required|exists:offices,id',
+            'office_time_slot_id'   => 'required|exists:office_time_slots,id',
             'appointment_date_only' => 'required|date|after_or_equal:today',
-            'notes'               => 'nullable|string|max:500',
+            'notes'                 => 'nullable|string|max:500',
         ]);
 
         $slot = OfficeTimeSlot::findOrFail($data['office_time_slot_id']);
@@ -51,10 +52,8 @@ class AppointmentController extends Controller
             return response()->json(['message' => 'This slot is fully booked for the selected date.'], 422);
         }
 
-        // Combine the selected date with the slot start time to populate legacy `appointment_date` datetime
         $appointmentDate = null;
         if (!empty($data['appointment_date_only']) && !empty($slot->start_time)) {
-            // `appointment_date_only` is a date (Y-m-d) and slot->start_time is H:i[:s]
             try {
                 $appointmentDate = Carbon::parse($data['appointment_date_only'] . ' ' . $slot->start_time);
             } catch (\Exception) {
@@ -72,6 +71,22 @@ class AppointmentController extends Controller
             'notes'                 => $data['notes'] ?? null,
         ]);
 
+        // ── Send booking confirmation email ─────────────────────────────────
+        SendAppointmentReminder::dispatch($appointment->id, 'confirmation')
+            ->onQueue('emails');
+
+        // ── In-app notification ─────────────────────────────────────────────
+        $officeName = $appointment->office?->name ?? 'the office';
+        $date       = $appointment->appointment_date_only
+            ? Carbon::parse($appointment->appointment_date_only)->format('d M Y')
+            : 'TBC';
+        NotificationService::notify(
+            Auth::id(),
+            0, // no request_id for appointments — use 0
+            "Your appointment at {$officeName} on {$date} has been received and is pending confirmation.",
+            'status_change'
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Appointment booked successfully.',
@@ -88,10 +103,23 @@ class AppointmentController extends Controller
 
         $appointment->update(['status' => 'cancelled']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Appointment cancelled.',
-        ]);
+        // ── Send cancellation email ─────────────────────────────────────────
+        SendAppointmentReminder::dispatch($appointment->id, 'cancelled')
+            ->onQueue('emails');
+
+        // ── In-app notification ─────────────────────────────────────────────
+        $officeName = $appointment->office?->name ?? 'the office';
+        $date       = $appointment->appointment_date_only
+            ? Carbon::parse($appointment->appointment_date_only)->format('d M Y')
+            : 'TBC';
+        NotificationService::notify(
+            Auth::id(),
+            0,
+            "Your appointment at {$officeName} on {$date} has been cancelled.",
+            'status_change'
+        );
+
+        return response()->json(['success' => true, 'message' => 'Appointment cancelled.']);
     }
 
     public function updateStatus(Request $request, string $id)
@@ -101,7 +129,7 @@ class AppointmentController extends Controller
         ]);
 
         $appointment = Appointment::findOrFail($id);
-        $user = Auth::user();
+        $user        = Auth::user();
 
         if ($user->role?->name === 'office' && $appointment->office_id !== $user->office_id) {
             return response()->json(['message' => 'Forbidden.'], 403);
@@ -112,6 +140,26 @@ class AppointmentController extends Controller
         }
 
         $appointment->update(['status' => $data['status']]);
+
+        // ── Notify citizen of office decision ──────────────────────────────
+        $emailType = $data['status'] === 'confirmed' ? 'confirmation' : 'cancelled';
+        SendAppointmentReminder::dispatch($appointment->id, $emailType)
+            ->onQueue('emails');
+
+        // ── In-app notification to citizen ─────────────────────────────────
+        $officeName = $appointment->office?->name ?? 'the office';
+        $date       = $appointment->appointment_date_only
+            ? Carbon::parse($appointment->appointment_date_only)->format('d M Y')
+            : 'TBC';
+        $notifMsg = $data['status'] === 'confirmed'
+            ? "Your appointment at {$officeName} on {$date} has been confirmed."
+            : "Your appointment at {$officeName} on {$date} has been declined by the office.";
+        NotificationService::notify(
+            $appointment->user_id,
+            0,
+            $notifMsg,
+            'status_change'
+        );
 
         return response()->json([
             'success' => true,

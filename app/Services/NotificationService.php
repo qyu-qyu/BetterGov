@@ -19,7 +19,7 @@ class NotificationService
      */
     public static function notify(
         int    $userId,
-        int    $requestId,
+        ?int   $requestId,
         string $message,
         string $type = self::TYPE_STATUS_CHANGE
     ): ?Notification {
@@ -27,7 +27,7 @@ class NotificationService
             // 1. Save to DB
             $notification = Notification::create([
                 'user_id'    => $userId,
-                'request_id' => $requestId,
+                'request_id' => ($requestId > 0 ? $requestId : null),
                 'message'    => $message,
                 'type'       => $type,
                 'is_read'    => false,

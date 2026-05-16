@@ -13,6 +13,8 @@ use App\Http\Controllers\RequestDocumentController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\PaymentController;
 
+use App\Http\Controllers\QrTrackingController;
+
 /*
 |--------------------------------------------------------------------------
 | Authentication pages
@@ -22,6 +24,9 @@ Route::get('/',         [AuthController::class, 'showPage'])->name('auth');
 Route::get('/auth',     [AuthController::class, 'showPage'])->name('auth.page');
 Route::get('/login',    [AuthController::class, 'showPage'])->name('login');
 Route::get('/register', fn() => redirect('/?tab=register'))->name('register');
+
+// ── Public QR tracking page (no login required) ───────────────────────────────
+Route::get('/track/{token}', [QrTrackingController::class, 'show'])->name('track.show');
 
 /*
 |--------------------------------------------------------------------------
