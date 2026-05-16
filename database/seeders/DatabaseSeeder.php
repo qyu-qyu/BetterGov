@@ -8,8 +8,10 @@ use App\Models\Office;
 use App\Models\OfficeTimeSlot;
 use App\Models\OfficeType;
 use App\Models\Role;
+use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\ServiceType;
+use App\Models\Request as ServiceRequest;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -23,8 +25,15 @@ class DatabaseSeeder extends Seeder
         $citizenRole = Role::firstOrCreate(['name' => 'citizen']);
 
         // ── Municipalities ─────────────────────────────────────────────────────
-        $beirut  = Municipality::firstOrCreate(['name' => 'Beirut'],  ['city' => 'Greater Beirut']);
-        $tripoli = Municipality::firstOrCreate(['name' => 'Tripoli'], ['city' => 'North Lebanon']);
+        $beirut  = Municipality::firstOrCreate(
+            ['name' => 'Beirut'],
+            ['city' => 'Greater Beirut']
+        );
+
+        $tripoli = Municipality::firstOrCreate(
+            ['name' => 'Tripoli'],
+            ['city' => 'North Lebanon']
+        );
 
         // ── Office types ───────────────────────────────────────────────────────
         $cityHall  = OfficeType::firstOrCreate(['name' => 'City Hall']);
@@ -164,7 +173,7 @@ class DatabaseSeeder extends Seeder
             'Security plan (for large events)',
             'Technical drawings of the excavation area',
             'Company trade license',
-            "Engineer\'s signature",
+            "Engineer's signature",
             'Municipality application + fees',
             'Stool test results',
             'Medical examination report',
@@ -180,12 +189,12 @@ class DatabaseSeeder extends Seeder
             'Old passport (if renewing)',
             'Payment of fees',
             'Valid passport',
-            'Lease contract or title deed',
             'Bank statement (for long-term residency)',
             'Employer attestation or salary certificate',
             'Health insurance proof',
             'Passport photos',
-            // generic fallback names used elsewhere in the app
+
+            // generic
             'National ID',
             'Passport',
             'Proof of Residence',
@@ -193,8 +202,10 @@ class DatabaseSeeder extends Seeder
             'Tax Declaration',
         ];
 
-        foreach (array_values(array_unique($documentTypeNames)) as $documentTypeName) {
-            DocumentType::firstOrCreate(['name' => $documentTypeName]);
+        foreach (array_unique($documentTypeNames) as $documentTypeName) {
+            DocumentType::firstOrCreate([
+                'name' => $documentTypeName
+            ]);
         }
 
         $natId    = DocumentType::firstOrCreate(['name' => 'National ID']);
@@ -204,10 +215,18 @@ class DatabaseSeeder extends Seeder
         $tax      = DocumentType::firstOrCreate(['name' => 'Tax Declaration']);
 
         // ── Service categories ─────────────────────────────────────────────────
-        $catPermits  = ServiceCategory::firstOrCreate(['name' => 'Permits & Licenses']);
-        $catRecords  = ServiceCategory::firstOrCreate(['name' => 'Records & Certificates']);
-        $catRegist   = ServiceCategory::firstOrCreate(['name' => 'Registrations']);
-        // Template categories (used when offices adopt service templates)
+        $catPermits = ServiceCategory::firstOrCreate([
+            'name' => 'Permits & Licenses'
+        ]);
+
+        $catRecords = ServiceCategory::firstOrCreate([
+            'name' => 'Records & Certificates'
+        ]);
+
+        $catRegist = ServiceCategory::firstOrCreate([
+            'name' => 'Registrations'
+        ]);
+
         ServiceCategory::firstOrCreate(['name' => 'Civil Registry']);
         ServiceCategory::firstOrCreate(['name' => 'Mukhtar Services']);
         ServiceCategory::firstOrCreate(['name' => 'Municipal Permits']);
@@ -215,39 +234,128 @@ class DatabaseSeeder extends Seeder
         ServiceCategory::firstOrCreate(['name' => 'General Security']);
 
         // ── Service types ──────────────────────────────────────────────────────
-        $stypeApp    = ServiceType::firstOrCreate(['name' => 'Application']);
-        $stypeRenew  = ServiceType::firstOrCreate(['name' => 'Renewal']);
-        $stypeReq    = ServiceType::firstOrCreate(['name' => 'Request']);
+        $stypeApp   = ServiceType::firstOrCreate(['name' => 'Application']);
+        $stypeRenew = ServiceType::firstOrCreate(['name' => 'Renewal']);
+        $stypeReq   = ServiceType::firstOrCreate(['name' => 'Request']);
 
         // ── Services ───────────────────────────────────────────────────────────
-        // Services intentionally omitted.
+        $svc1 = Service::firstOrCreate(
+            ['name' => 'Business License', 'office_id' => $office1->id],
+            [
+                'service_category_id' => $catPermits->id,
+                'service_type_id'     => $stypeApp->id,
+                'fee'                 => 150.00,
+                'estimated_time'      => '5–7 business days',
+                'description'         => 'Apply for a new commercial business license.',
+            ]
+        );
 
-        // ── Time slots (Mon–Fri for both offices) ──────────────────────────────
+        $svc1->documentTypes()->syncWithoutDetaching([
+            $natId->id,
+            $proof->id,
+            $tax->id
+        ]);
+
+        $svc2 = Service::firstOrCreate(
+            ['name' => 'Birth Certificate Copy', 'office_id' => $office1->id],
+            [
+                'service_category_id' => $catRecords->id,
+                'service_type_id'     => $stypeReq->id,
+                'fee'                 => 15.00,
+                'estimated_time'      => '1–2 business days',
+                'description'         => 'Request an official copy of your birth certificate.',
+            ]
+        );
+
+        $svc2->documentTypes()->syncWithoutDetaching([
+            $natId->id
+        ]);
+
+        $svc3 = Service::firstOrCreate(
+            ['name' => 'Vehicle Registration', 'office_id' => $office2->id],
+            [
+                'service_category_id' => $catRegist->id,
+                'service_type_id'     => $stypeApp->id,
+                'fee'                 => 80.00,
+                'estimated_time'      => '3–5 business days',
+                'description'         => 'Register a new or transferred vehicle.',
+            ]
+        );
+
+        $svc3->documentTypes()->syncWithoutDetaching([
+            $natId->id,
+            $proof->id
+        ]);
+
+        $svc4 = Service::firstOrCreate(
+            ['name' => 'Marriage Certificate', 'office_id' => $office2->id],
+            [
+                'service_category_id' => $catRecords->id,
+                'service_type_id'     => $stypeReq->id,
+                'fee'                 => 25.00,
+                'estimated_time'      => '2–3 business days',
+                'description'         => 'Request an official marriage certificate.',
+            ]
+        );
+
+        $svc4->documentTypes()->syncWithoutDetaching([
+            $natId->id,
+            $birth->id
+        ]);
+
+        // ── Time slots ─────────────────────────────────────────────────────────
         $weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
         foreach ($weekdays as $day) {
+
             OfficeTimeSlot::firstOrCreate(
-                ['office_id' => $office1->id, 'day_of_week' => $day, 'start_time' => '09:00'],
-                ['end_time' => '12:00', 'max_capacity' => 10, 'is_active' => true]
+                [
+                    'office_id'   => $office1->id,
+                    'day_of_week' => $day,
+                    'start_time'  => '09:00'
+                ],
+                [
+                    'end_time'    => '12:00',
+                    'max_capacity'=> 10,
+                    'is_active'   => true
+                ]
             );
+
             OfficeTimeSlot::firstOrCreate(
-                ['office_id' => $office1->id, 'day_of_week' => $day, 'start_time' => '13:00'],
-                ['end_time' => '16:00', 'max_capacity' => 10, 'is_active' => true]
+                [
+                    'office_id'   => $office1->id,
+                    'day_of_week' => $day,
+                    'start_time'  => '13:00'
+                ],
+                [
+                    'end_time'    => '16:00',
+                    'max_capacity'=> 10,
+                    'is_active'   => true
+                ]
             );
+
             OfficeTimeSlot::firstOrCreate(
-                ['office_id' => $office2->id, 'day_of_week' => $day, 'start_time' => '08:00'],
-                ['end_time' => '14:00', 'max_capacity' => 8, 'is_active' => true]
+                [
+                    'office_id'   => $office2->id,
+                    'day_of_week' => $day,
+                    'start_time'  => '08:00'
+                ],
+                [
+                    'end_time'    => '14:00',
+                    'max_capacity'=> 8,
+                    'is_active'   => true
+                ]
             );
         }
 
         // ── Users ──────────────────────────────────────────────────────────────
-        // Passwords are plain text — the User model's 'hashed' cast bcrypts automatically
         User::firstOrCreate(
             ['email' => 'admin@bettergov.lb'],
             [
-                'name'     => 'Super Admin',
-                'password' => 'Admin@1234',
-                'role_id'  => $adminRole->id,
-                'is_active'=> true,
+                'name'      => 'Super Admin',
+                'password'  => 'Admin@1234',
+                'role_id'   => $adminRole->id,
+                'is_active' => true,
             ]
         );
 
@@ -320,30 +428,73 @@ class DatabaseSeeder extends Seeder
         User::firstOrCreate(
             ['email' => 'citizen@bettergov.lb'],
             [
-                'name'     => 'Ahmad Khalil',
-                'password' => 'Citizen@1234',
-                'role_id'  => $citizenRole->id,
-                'is_active'=> true,
+                'name'      => 'Test Citizen',
+                'password'  => 'Citizen@1234',
+                'role_id'   => $citizenRole->id,
+                'is_active' => true,
             ]
         );
 
+        // ── Sample requests ────────────────────────────────────────────────────
+        $citizen = User::firstWhere('email', 'citizen@bettergov.lb');
+
+        ServiceRequest::firstOrCreate(
+            [
+                'user_id'    => $citizen->id,
+                'service_id' => $svc1->id
+            ],
+            [
+                'office_id' => $office1->id,
+                'status'    => 'pending',
+                'notes'     => 'I need this for my new shop.',
+            ]
+        );
+
+        ServiceRequest::firstOrCreate(
+            [
+                'user_id'    => $citizen->id,
+                'service_id' => $svc2->id
+            ],
+            [
+                'office_id' => $office1->id,
+                'status'    => 'completed',
+                'notes'     => 'Needed for school enrollment.',
+            ]
+        );
+
+        ServiceRequest::firstOrCreate(
+            [
+                'user_id'    => $citizen->id,
+                'service_id' => $svc3->id
+            ],
+            [
+                'office_id' => $office2->id,
+                'status'    => 'processing',
+                'notes'     => 'Transferring vehicle from previous owner.',
+            ]
+        );
+
+        // ── Additional Seeder ──────────────────────────────────────────────────
+        $this->call(ServiceTemplateSeeder::class);
+
+        // ── Console Output ─────────────────────────────────────────────────────
         $this->command->info('');
-        $this->command->info('✅  Database seeded successfully!');
+        $this->command->info('✅ Database seeded successfully!');
         $this->command->info('');
+
         $this->command->table(
             ['Role', 'Email', 'Password'],
             [
-                ['Admin',                'admin@bettergov.lb',          'Admin@1234'],
-                ['Office (Beirut)',      'beirut@bettergov.lb',         'Office@1234'],
-                ['Office (Tripoli)',     'tripoli@bettergov.lb',        'Office@1234'],
-                ['Office (Civil Registry)','civil.registry@bettergov.lb','Office@1234'],
-                ['Office (Mukhtar)',     'mukhtar@bettergov.lb',        'Office@1234'],
-                ['Office (Public Health)','public.health@bettergov.lb', 'Office@1234'],
-                ['Office (General Security)','general.security@bettergov.lb','Office@1234'],
-                ['Citizen',              'citizen@bettergov.lb',        'Citizen@1234'],
+                ['Admin', 'admin@bettergov.lb', 'Admin@1234'],
+                ['Office (Beirut)', 'beirut@bettergov.lb', 'Office@1234'],
+                ['Office (Tripoli)', 'tripoli@bettergov.lb', 'Office@1234'],
+                ['Office (Civil Registry)', 'civil.registry@bettergov.lb', 'Office@1234'],
+                ['Office (Mukhtar)', 'mukhtar@bettergov.lb', 'Office@1234'],
+                ['Office (Public Health)', 'public.health@bettergov.lb', 'Office@1234'],
+                ['Office (General Security)', 'general.security@bettergov.lb', 'Office@1234'],
+                ['Citizen', 'citizen@bettergov.lb', 'Citizen@1234'],
             ]
         );
-        $this->call(ServiceTemplateSeeder::class);
 
         $this->command->info('');
         $this->command->info('Run: php artisan migrate:fresh --seed');

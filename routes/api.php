@@ -19,6 +19,7 @@ use App\Http\Controllers\OfficeTimeSlotController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\SseController;
 use App\Http\Controllers\OfficeDashboardController;
 use App\Http\Controllers\OfficePortalController;
 
@@ -29,6 +30,9 @@ Route::post('/login',    [AuthController::class, 'login']);
 // Payment webhook (must be public, verified by signature)
 Route::post('/webhooks/stripe',   [PaymentController::class, 'stripeWebhook']);
 Route::get('/roles',     [AuthController::class, 'roles']);
+
+// SSE stream (auth via token in query string or header)
+Route::get('/sse', [SseController::class, 'stream']);
 
 Route::get('/offices',                                    [OfficeController::class,          'index']);
 Route::get('/offices/{id}',                               [OfficeController::class,          'show']);
@@ -88,6 +92,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Notifications
     Route::get('/notifications',             [NotificationController::class, 'index']);
     Route::post('/notifications/{id}/read',  [NotificationController::class, 'markRead']);
+    Route::post('/notifications/read-all',    [NotificationController::class, 'markAllRead']);
 
     // Payments
     Route::get('/payments',                              [PaymentController::class, 'index']);

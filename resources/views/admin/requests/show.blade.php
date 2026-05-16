@@ -102,7 +102,7 @@
         </div>
     </div>
 
-    <!-- Right column: chat -->
+    <!-- Right column: chat 
     <div class="col-12 col-lg-5">
         <div class="card" style="height:100%;min-height:520px;display:flex;flex-direction:column;">
             <div class="card-header"><i class="bi bi-chat-dots me-2 text-primary"></i>Conversation</div>
@@ -120,7 +120,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 </div>
 @endsection
 

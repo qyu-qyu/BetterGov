@@ -286,34 +286,6 @@ select:focus{
   display:none;
 }
 
-.demo-box{
-  background:#f9fafb;
-  border:1px solid var(--border);
-  border-radius:12px;
-  padding:16px;
-  margin-bottom:20px;
-}
-
-.demo-box-title{
-  font-weight:700;
-  margin-bottom:10px;
-  color:var(--accent);
-}
-
-.demo-row{
-  display:flex;
-  justify-content:space-between;
-  margin-bottom:8px;
-  font-size:13px;
-}
-
-.demo-cred{
-  cursor:pointer;
-  background:white;
-  border:1px solid var(--border);
-  padding:4px 8px;
-  border-radius:6px;
-}
 
 @media(max-width:768px){
 
@@ -416,29 +388,7 @@ select:focus{
           <p>Sign in to your account</p>
         </div>
 
-        <div class="demo-box">
-
-          <div class="demo-box-title">
-            Demo Credentials
-          </div>
-
-          <div class="demo-row">
-            <span>Admin</span>
-            <span class="demo-cred"
-              onclick="fillLogin('admin@example.com','password')">
-              Use
-            </span>
-          </div>
-
-          <div class="demo-row">
-            <span>Citizen</span>
-            <span class="demo-cred"
-              onclick="fillLogin('citizen@example.com','password')">
-              Use
-            </span>
-          </div>
-
-        </div>
+        
 
         <form id="login-form">
 
@@ -447,7 +397,6 @@ select:focus{
             <label>Email</label>
 
             <div class="input-wrap">
-              <span class="input-icon">✉️</span>
 
               <input
                 type="email"
@@ -464,9 +413,6 @@ select:focus{
             <label>Password</label>
 
             <div class="input-wrap">
-
-              <span class="input-icon">🔒</span>
-
               <input
                 type="password"
                 id="l-password"

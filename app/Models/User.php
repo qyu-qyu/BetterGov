@@ -20,6 +20,7 @@ class User extends Authenticatable
        'role_id',
        'office_id',
        'is_active',
+       'email_notifications',
    ];
 
    protected $hidden = [
@@ -30,9 +31,10 @@ class User extends Authenticatable
    protected function casts(): array
    {
        return [
-           'email_verified_at' => 'datetime',
-           'password'          => 'hashed',
-           'is_active'         => 'boolean',
+           'email_verified_at'   => 'datetime',
+           'password'            => 'hashed',
+           'is_active'           => 'boolean',
+           'email_notifications' => 'boolean',
        ];
    }
 
@@ -51,4 +53,3 @@ class User extends Authenticatable
        return $this->hasMany(ServiceRequest::class);
    }
 }
-

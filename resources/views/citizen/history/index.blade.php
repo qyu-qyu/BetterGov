@@ -58,7 +58,7 @@
                             <th>Service</th>
                             <th>Office</th>
                             <th>Status</th>
-                            <th>Fee</th>
+                            
                             <th>Date</th>
                             <th></th>
                         </tr>
@@ -148,7 +148,7 @@ async function loadHistory() {
                 <td class="fw-semibold small">${r.service_name ?? '—'}</td>
                 <td class="text-muted small">${r.office_name ?? '—'}</td>
                 <td>${statusBadge(r.status)}</td>
-                <td class="small">${r.fee ? '$' + parseFloat(r.fee).toFixed(2) : '—'}</td>
+                
                 <td class="text-muted small">${fmtDate(r.created_at)}</td>
                 <td class="text-end pe-3">
                     <a href="/citizen/requests/${r.id}" class="btn btn-sm btn-outline-primary py-0">

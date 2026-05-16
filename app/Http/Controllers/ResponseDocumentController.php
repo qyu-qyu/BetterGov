@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\ResponseDocument;
+use App\Models\Request as ServiceRequest;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -27,19 +29,31 @@ class ResponseDocumentController extends Controller
             'file_path'   => $path,
         ]);
 
+        // ── Notify citizen + push via SSE ───────────────────────────────────
+        $serviceRequest = ServiceRequest::find($data['request_id']);
+        if ($serviceRequest) {
+            $docTitle = $data['title'] ?? $file->getClientOriginalName();
+            NotificationService::notify(
+                $serviceRequest->user_id,
+                $serviceRequest->id,
+                "A document \"{$docTitle}\" was uploaded to your request #{$serviceRequest->id}.",
+                NotificationService::TYPE_DOCUMENT_UPLOADED
+            );
+        }
+
         return response()->json(['success' => true, 'message' => 'Document uploaded.', 'data' => $document], 201);
     }
 
     public function getByRequest(string $requestId)
     {
-        $documents = ResponseDocument::query()->where('request_id', '=', $requestId, 'and')->get();
-
+        // Fixed: was passing 4 args to where() — correct is 3
+        $documents = ResponseDocument::where('request_id', $requestId)->get();
         return response()->json(['success' => true, 'data' => $documents], 200);
     }
 
     public function download(int $id)
     {
-        $doc = ResponseDocument::with('request')->findOrFail($id);
+        $doc  = ResponseDocument::with('request')->findOrFail($id);
         $user = Auth::user();
         $role = $user->role?->name;
 
