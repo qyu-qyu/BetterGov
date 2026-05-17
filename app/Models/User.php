@@ -21,6 +21,11 @@ class User extends Authenticatable
        'office_id',
        'is_active',
        'email_notifications',
+       'first_name',
+       'last_name',
+       'id_number',
+       'date_of_birth',
+       'id_document_path',
    ];
 
    protected $hidden = [

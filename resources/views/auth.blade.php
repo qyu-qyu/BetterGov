@@ -401,6 +401,7 @@ select:focus{
               <input
                 type="email"
                 id="l-email"
+                name="email"
                 placeholder="you@example.com">
             </div>
 
@@ -416,6 +417,7 @@ select:focus{
               <input
                 type="password"
                 id="l-password"
+                name="password"
                 placeholder="Enter password">
 
               <button
@@ -500,23 +502,8 @@ select:focus{
           <p>Join BetterGov platform</p>
         </div>
 
-        <form>
+        <form id="register-form" enctype="multipart/form-data">
 
-          <div class="field">
-
-            <label>Full Name</label>
-
-            <div class="input-wrap">
-
-              <span class="input-icon">👤</span>
-
-              <input
-                type="text"
-                placeholder="Your name">
-
-            </div>
-
-          </div>
 
           <div class="field">
 
@@ -528,11 +515,26 @@ select:focus{
 
               <input
                 type="email"
+                id="r-email"
+                name="email"
                 placeholder="you@example.com">
 
             </div>
 
           </div>
+
+          <div class="field">
+             <label>Upload ID Card</label>
+              <div class="input-wrap">
+                 <input
+                  type="file"
+                   id="r-id-document"
+                   name="id_document"
+                    accept="image/*,.pdf">
+              </div>
+                   <div id="register-error" class="field-error">
+                   </div>
+            </div>
 
           <div class="field">
 
@@ -545,6 +547,7 @@ select:focus{
               <input
                 type="password"
                 id="r-password"
+                name="password"
                 placeholder="Create password">
 
               <button
@@ -557,6 +560,19 @@ select:focus{
             </div>
 
           </div>
+
+          <div class="field">
+<label>Confirm Password</label>
+<div class="input-wrap">
+<span class="input-icon">🔒</span>
+<input
+     type="password"
+     id="r-password-confirmation"
+     name="password_confirmation"
+     placeholder="Confirm password">
+</div>
+</div>
+
 
           <button class="submit-btn" type="submit">
             Create Account
@@ -632,6 +648,49 @@ function fillLogin(email,password){
     password;
 
 }
+
+document.getElementById('register-form').addEventListener('submit', async function(e){
+  e.preventDefault();
+
+  const errEl = document.getElementById('register-error');
+  errEl.textContent = '';
+
+  const idFile = document.getElementById('r-id-document').files[0];
+
+  if (!idFile) {
+    errEl.textContent = 'Please upload your ID card.';
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('email', document.getElementById('r-email').value.trim());
+  formData.append('password', document.getElementById('r-password').value);
+  formData.append('password_confirmation', document.getElementById('r-password-confirmation').value);
+  formData.append('id_document', idFile);
+
+  try {
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json'
+      },
+      body: formData
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      errEl.textContent = data?.message || (data?.errors ? Object.values(data.errors).flat().join(' ') : 'Registration failed');
+      return;
+    }
+
+    alert('Account created successfully using ID verification.');
+    switchTab('login');
+
+  } catch (err) {
+    errEl.textContent = 'Network error, try again.';
+  }
+});
 
 </script>
 
